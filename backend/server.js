@@ -16,11 +16,11 @@ const mongoose   = require('mongoose');
 
 const authRoutes    = require('./routes/auth');
 const searchRoutes  = require('./routes/search');
-const productRoutes = require('./routes/product');
+const productRoutes = require('./routes/Product');
 const alertRoutes   = require('./routes/alerts');
-const userRoutes    = require('./routes/user');
+// const userRoutes    = require('./routes/user'); // File does not exist yet
 
-require('./config/passport')(passport);
+// require('./config/passport')(passport); // File does not exist yet
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -74,7 +74,7 @@ app.use('/api/auth',    authRoutes);
 app.use('/api/search',  searchRoutes);
 app.use('/api/product', productRoutes);
 app.use('/api/alerts',  alertRoutes);
-app.use('/api/user',    userRoutes);
+// app.use('/api/user',    userRoutes); // File does not exist yet
 
 /* ── Health Check ──────────────────────────────── */
 app.get('/api/health', (req, res) => res.json({
