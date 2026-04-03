@@ -1,401 +1,148 @@
 /* ============================================================
    DealBaazi v2 — dashboard.js
+   Refined Dashboard Logic: Populated real data from API
    ============================================================ */
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadUserNav();
-  renderAllSections();
-  startDealCountdown();
-  handleUrlQuery();
+const CATEGORY_MAP = ['phones', 'laptops', 'gaming', 'audio', 'tvs', 'appliances'];
 
-  // Keyboard shortcut: / focuses search
-  document.addEventListener('keydown', e => {
-    if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
-      e.preventDefault();
-      document.getElementById('nav-q')?.focus();
+window.fetchFeaturedProducts = async function() {
+  console.info('[dashboard.js] fetchFeaturedProducts started');
+  
+  for (const cat of CATEGORY_MAP) {
+    const gridId = `grid-${cat === 'phones' ? 'phones' : cat}`;
+    const grid = document.getElementById(gridId);
+    if (!grid) {
+      console.warn(`[dashboard.js] Grid element not found for ${cat}: ${gridId}`);
+      continue;
     }
-    if (e.key === 'Escape') closeModal();
-  });
-});
 
-/* ════════════════════════════════════════
-   NAV
-   ════════════════════════════════════════ */
-function toggleDrop() {
-  document.getElementById('nav-drop')?.classList.toggle('open');
-}
-document.addEventListener('click', e => {
-  if (!e.target.closest('#nav-avatar') && !e.target.closest('#nav-drop')) {
-    document.getElementById('nav-drop')?.classList.remove('open');
+    try {
+      console.info(`[dashboard.js] Fetching ${cat}...`);
+      const res = await fetch(`/api/search?category=${cat}&page=1`);
+      const data = await res.json();
+      
+      if (data.results && data.results.length > 0) {
+        console.info(`[dashboard.js] Populating ${cat} with ${data.results.length} items`);
+        grid.innerHTML = data.results.slice(0, 4).map((p, i) => window.productCardHTML_Home(p, i)).join('');
+      } else {
+        console.info(`[dashboard.js] No results for ${cat}, hiding section`);
+        const section = grid.closest('.product-section');
+        if (section) section.style.display = 'none';
+      }
+    } catch (err) {
+      console.error(`[dashboard.js] Error fetching ${cat}:`, err);
+    }
   }
-});
-
-/* ════════════════════════════════════════
-   RENDER ALL SECTIONS
-   ════════════════════════════════════════ */
-const SECTION_MAP = {
-  laptops:         { gridId: 'grid-laptops',    key: 'laptops',        show: 4 },
-  phones:          { gridId: 'grid-phones',     key: 'phones',         show: 4 },
-  gaming:          { gridId: 'grid-gaming',     key: 'gaming',         show: 6 },
-  audio:           { gridId: 'grid-audio',      key: 'audio',          show: 4 },
-  tvs:             { gridId: 'grid-tvs',        key: 'tvs',            show: 4 },
-  appliances:      { gridId: 'grid-appliances', key: 'appliances',     show: 4 },
-  'fashion-men':   { gridId: 'grid-men',        key: 'fashion-men',    show: 4 },
-  'fashion-women': { gridId: 'grid-women',      key: 'fashion-women',  show: 4 },
-  shoes:           { gridId: 'grid-shoes',      key: 'shoes',          show: 4 },
-  cameras:         { gridId: 'grid-cameras',    key: 'cameras',        show: 3 },
-  tablets:         { gridId: 'grid-tablets',    key: 'tablets',        show: 3 }
 };
 
-function renderAllSections() {
-  Object.values(SECTION_MAP).forEach(({ gridId, key, show }) => {
-    const el = document.getElementById(gridId);
-    if (!el) return;
-    const items = (window.PRODUCTS[key] || []).slice(0, show);
-    el.innerHTML = items.map((p, i) => productCardHTML(p, i)).join('');
-  });
-}
-
-/* ════════════════════════════════════════
-   CATEGORY FILTER
-   ════════════════════════════════════════ */
-function showCat(cat, btn) {
-  // Update active tab
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-
-  const hero    = document.getElementById('hero-section');
-  const deal    = document.getElementById('deal-banner');
-  const sections = document.querySelectorAll('.product-section');
-
-  if (hero) hero.style.display = 'none';
-
-  sections.forEach(s => {
-    const cats = s.dataset.cat?.split(' ') || [];
-    s.style.display = (cat === 'all' || cats.includes(cat)) ? 'block' : 'none';
-  });
-
-  if (cat === 'all') {
-    if (deal) deal.style.display = '';
-  } else {
-    if (deal) deal.style.display = 'none';
-  }
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-/* ════════════════════════════════════════
-   SEARCH
-   ════════════════════════════════════════ */
-function runSearch(query) {
-  if (!query?.trim()) return;
-  query = query.trim();
-
-  const hero = document.getElementById('hero-section');
-  if (hero) hero.style.display = 'none';
-
-  document.getElementById('nav-q').value = query;
-
-  // Reset cat tabs
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector('.cat-btn')?.classList.add('active');
-
-  // Search across all products
-  const q = query.toLowerCase();
-  const results = (window.PRODUCTS_FLAT || []).filter(p =>
-    p.name.toLowerCase().includes(q) ||
-    p.brand.toLowerCase().includes(q) ||
-    p.category.toLowerCase().includes(q) ||
-    Object.values(p.specs || {}).some(v => String(v).toLowerCase().includes(q))
-  );
-
-  // Show all sections hidden, then inject results
-  document.querySelectorAll('.product-section').forEach(s => s.style.display = 'none');
-  document.getElementById('deal-banner').style.display = 'none';
-
-  let searchSec = document.getElementById('search-results-section');
-  if (!searchSec) {
-    searchSec = document.createElement('div');
-    searchSec.id = 'search-results-section';
-    searchSec.className = 'product-section';
-    document.getElementById('main-content').prepend(searchSec);
-  }
-  searchSec.style.display = 'block';
-  searchSec.innerHTML = `
-    <div class="section-head">
-      <div class="section-title">Search results for "<span style="color:var(--em)">${escH(query)}</span>"</div>
-      <span class="section-more" onclick="clearSearch()">&times; Clear</span>
-    </div>
-    <div class="product-grid" id="search-grid">
-      ${results.length
-        ? results.map((p, i) => productCardHTML(p, i)).join('')
-        : `<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>No results found</h3><p>Try a different search term or browse categories above.</p></div>`
-      }
-    </div>
-  `;
-  searchSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  // Update URL
-  const url = new URL(window.location.href);
-  url.searchParams.set('q', query);
-  window.history.pushState({}, '', url);
-}
-
-function clearSearch() {
-  const sec = document.getElementById('search-results-section');
-  if (sec) sec.remove();
-  document.querySelectorAll('.product-section').forEach(s => s.style.display = 'block');
-  document.getElementById('deal-banner').style.display = '';
-  document.getElementById('hero-section').style.display = '';
-  const url = new URL(window.location.href);
-  url.searchParams.delete('q');
-  window.history.pushState({}, '', url);
-  document.getElementById('nav-q').value = '';
-}
-
-function handleUrlQuery() {
-  const q = new URLSearchParams(window.location.search).get('q');
-  if (q) { document.getElementById('nav-q').value = q; runSearch(q); }
-}
-
-/* ════════════════════════════════════════
-   PRODUCT CARD
-   ════════════════════════════════════════ */
-function productCardHTML(p, idx) {
-  const delay  = Math.min(idx * 0.06, 0.5);
-  const prices = p.prices || [];
-  const best   = prices.reduce((a, b) => a.price <= b.price ? a : b, prices[0] || {});
-  const mrp    = best?.mrp || best?.price || 0;
-  const pct    = mrp > best?.price ? Math.round((1 - best.price / mrp) * 100) : 0;
-  const storeNames = prices.slice(0, 3);
-
-  const badges = (p.badges || []).map(b => `<span class="badge badge-em">${escH(b)}</span>`).join('');
-
+window.productCardHTML_Home = function(p, idx) {
+  const delay = Math.min(idx * 0.05, 0.4);
+  const links = p.marketplaceLinks || {};
+  
   return `
-<div class="product-card" style="animation-delay:${delay}s" onclick="openModal('${p.id}')">
-  <div class="card-badges">${badges}</div>
-  <button class="card-wishlist-btn ${isWishlisted(p.id) ? 'wishlisted' : ''}"
-          onclick="event.stopPropagation(); toggleWishlist('${p.id}', this)"
-          title="Add to Wishlist">
-    ${isWishlisted(p.id) ? '❤' : '♡'}
-  </button>
+<div class="product-card" style="animation-delay:${delay}s" onclick="openProductModal('${p.id}')">
   <div class="card-img-wrap">
-    <img src="${p.image}" alt="${escH(p.name)}"
-         loading="lazy"
-         onerror="this.src='https://placehold.co/200x160/111520/4b5d74?text=Product'"/>
+    <img src="${p.image || 'https://via.placeholder.com/200x180?text=Product'}" alt="${p.name}" loading="lazy"/>
   </div>
   <div class="card-body">
     <div class="card-meta-top">
-      <span class="card-brand">${escH(p.brand)}</span>
-      <span class="card-rating">★ ${p.rating}<span>(${(p.reviews||0).toLocaleString('en-IN')})</span></span>
+      <span class="card-brand">${p.brand || 'Premium'}</span>
+      <span class="card-rating">★ ${p.rating || '4.5'}</span>
     </div>
-    <div class="card-name">${escH(p.name)}</div>
+    <div class="card-name">${p.name}</div>
     <div class="card-price-row">
-      <span class="card-price">₹${fmtP(best.price)}</span>
-      ${mrp > best.price ? `<span class="card-mrp">₹${fmtP(mrp)}</span>` : ''}
-      ${pct > 0 ? `<span class="card-discount-pct">${pct}% off</span>` : ''}
+      <span class="card-price">₹${Number(p.bestPrice).toLocaleString('en-IN')}</span>
+      <span class="card-discount-pct">Best Price</span>
     </div>
-    <div class="card-stores">
-      ${storeNames.map((s, i) =>
-        `<span class="card-store-pill ${i===0?'cheapest':''}">${escH(s.store.split(' ')[0])}</span>`
-      ).join('')}
-      ${prices.length > 3 ? `<span class="card-store-pill">+${prices.length-3} more</span>` : ''}
-    </div>
-    <div class="card-footer">
-      <button class="card-btn-primary" onclick="event.stopPropagation(); openModal('${p.id}')">
-        Compare All Prices
-      </button>
-      <button class="card-btn-icon" onclick="event.stopPropagation(); window.open('${best.url||'#'}','_blank')" title="Buy now">
-        🛒
-      </button>
+    <div class="card-divider" style="height:1px; background:var(--line); margin:12px 0"></div>
+    <div class="card-direct-links">
+      <a href="${links.amazon}" target="_blank" class="link-pill az" onclick="event.stopPropagation()">Amazon</a>
+      <a href="${links.flipkart}" target="_blank" class="link-pill fk" onclick="event.stopPropagation()">Flipkart</a>
+      <a href="${links.reliance}" target="_blank" class="link-pill rl" onclick="event.stopPropagation()">Reliance</a>
+      <a href="${links.croma}" target="_blank" class="link-pill cm" onclick="event.stopPropagation()">Croma</a>
     </div>
   </div>
 </div>`;
-}
+};
 
-/* ════════════════════════════════════════
-   PRODUCT MODAL
-   ════════════════════════════════════════ */
-function openModal(productId) {
-  const p = (window.PRODUCTS_FLAT || []).find(x => x.id === productId);
+window.openProductModal = async function(id) {
+  console.info('[dashboard.js] openProductModal:', id);
   const modal = document.getElementById('product-modal');
-  const body  = document.getElementById('modal-body');
+  const body = document.getElementById('modal-body');
+  if (!modal || !body) return;
+
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
-  if (!p) { body.innerHTML = '<div style="padding:40px;color:var(--t3)">Product not found.</div>'; return; }
-  body.innerHTML = buildModalHTML(p);
-}
+  body.innerHTML = '<div style="padding:60px;text-align:center;color:var(--t3)">Loading details...</div>';
 
-function buildModalHTML(p) {
-  const prices  = (p.prices || []).sort((a,b) => a.price - b.price);
-  const best    = prices[0] || {};
-  const mrp     = best.mrp || best.price || 0;
-  const pct     = mrp > best.price ? Math.round((1 - best.price/mrp)*100) : 0;
-  const lowestEver = p.lowestEver ? `₹${fmtP(p.lowestEver)}` : `₹${fmtP(best.price)}`;
+  try {
+    const res = await fetch(`/api/product/${id}`);
+    const p = await res.json();
+    body.innerHTML = window.buildModalHTML_Home(p);
+  } catch (err) {
+    body.innerHTML = '<div style="padding:40px;color:var(--t3)">Error loading product details.</div>';
+  }
+};
 
-  const specsRows = Object.entries(p.specs || {}).map(([k,v]) =>
-    `<tr><td>${escH(k)}</td><td>${escH(String(v))}</td></tr>`
-  ).join('');
-
-  const priceRows = prices.map((s, i) => `
-    <tr class="${i===0?'best-row':''}">
-      <td><span class="cmp-store">${i===0?'🏆 ':''} ${escH(s.store)}</span></td>
-      <td><span class="cmp-price">₹${fmtP(s.price)}</span></td>
-      <td>${s.mrp && s.mrp > s.price ? `<span style="text-decoration:line-through;color:var(--t3)">₹${fmtP(s.mrp)}</span>` : '—'}</td>
-      <td>${s.mrp && s.mrp > s.price ? `<span class="badge badge-em">${Math.round((1-s.price/s.mrp)*100)}%</span>` : '—'}</td>
-      <td>${s.inStock ? '<span class="badge badge-em">In Stock</span>' : '<span class="badge badge-red">Out of Stock</span>'}</td>
-      <td>
-        ${s.inStock
-          ? `<a href="${escH(s.url||'#')}" target="_blank" rel="noopener" class="cmp-buy-btn" onclick="event.stopPropagation()">Buy Now ↗</a>`
-          : `<span style="color:var(--t3);font-size:.78rem">Unavailable</span>`
-        }
-      </td>
-    </tr>
-    ${(s.offers||[]).length ? `<tr class="${i===0?'best-row':''}"><td colspan="6" style="padding:4px 14px 12px;border-bottom:1px solid var(--line)">
-      ${s.offers.map(o=>`<span class="offer-tag">🏷 ${escH(o)}</span>`).join('')}
-    </td></tr>` : ''}
-  `).join('');
+window.buildModalHTML_Home = function(p) {
+  const links = p.marketplaceLinks || {};
+  const specs = p.specs || {};
+  const specRows = Object.entries(specs).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
 
   return `
-  <div class="modal-product">
-    <div class="modal-product-grid">
-      <div>
-        <div class="modal-img-wrap">
-          <img src="${p.image}" alt="${escH(p.name)}"
-               onerror="this.src='https://placehold.co/220x180/111520/4b5d74?text=Product'"/>
+    <div class="modal-product" style="padding:32px">
+      <div class="modal-product-grid" style="display:grid; grid-template-columns:280px 1fr; gap:32px">
+        <div class="modal-img-wrap" style="background:var(--bg-raised); border-radius:12px; padding:24px; display:flex; align-items:center; justify-content:center">
+          <img src="${p.image}" alt="${p.name}" style="max-width:100%; max-height:240px; object-fit:contain" />
+        </div>
+        <div>
+          <div class="modal-brand" style="font-size:0.75rem; color:var(--t3); text-transform:uppercase; font-weight:700; margin-bottom:8px">${p.brand}</div>
+          <h2 class="modal-name" style="font-size:1.6rem; font-weight:700; margin-bottom:16px">${p.name}</h2>
+          <div class="modal-best-price" style="font-size:2.4rem; font-weight:700; color:var(--em); margin-bottom:24px">₹${p.bestPrice.toLocaleString('en-IN')}</div>
+          
+          <div class="modal-actions" style="display:flex; gap:12px; margin-bottom:32px">
+            <button class="btn btn-em btn-sm" onclick="trackProduct('${p.id}')">📦 Track Price</button>
+            <button class="btn btn-outline btn-sm" onclick="setAlert('${p.id}', ${p.bestPrice})">🔔 Alert Me</button>
+          </div>
+
+          <table class="specs-table" style="width:100%; font-size:0.85rem">
+            <tbody>${specRows}</tbody>
+          </table>
         </div>
       </div>
-      <div>
-        <div class="modal-brand">${escH(p.brand)}</div>
-        <div class="modal-name">${escH(p.name)}</div>
-        <div class="modal-best-label">Best Price Today</div>
-        <div class="modal-best-price">
-          ₹${fmtP(best.price)}
-          ${pct > 0 ? `<span class="badge badge-em" style="margin-left:10px;vertical-align:middle">${pct}% off</span>` : ''}
-        </div>
-        <div class="modal-lowest-ever">
-          Lowest ever: <strong>${lowestEver}</strong>
-          &nbsp;·&nbsp; ★ ${p.rating} (${(p.reviews||0).toLocaleString('en-IN')} reviews)
-        </div>
-        <div class="modal-action-row">
-          <a href="${best.url||'#'}" target="_blank" rel="noopener" class="btn btn-em btn-sm">
-            Buy on ${escH((best.store||'').split(' ')[0])} ↗
-          </a>
-          <button class="btn btn-outline btn-sm" onclick="setAlert('${p.id}',${best.price})">
-            🔔 Set Price Alert
-          </button>
-          <button class="btn btn-outline btn-sm" onclick="trackProduct('${p.id}')">
-            📦 Track Price
-          </button>
-        </div>
-
-        ${specsRows ? `
-          <div class="specs-title">Specifications</div>
-          <table class="specs-table"><tbody>${specsRows}</tbody></table>
-        ` : ''}
+      <div class="compare-title" style="margin-top:40px; margin-bottom:20px; font-weight:700">Official Direct Links</div>
+      <div class="card-direct-links" style="grid-template-columns:repeat(4, 1fr); gap:12px">
+        <a href="${links.amazon}" target="_blank" class="link-pill az">Amazon ↗</a>
+        <a href="${links.flipkart}" target="_blank" class="link-pill fk">Flipkart ↗</a>
+        <a href="${links.reliance}" target="_blank" class="link-pill rl">Reliance ↗</a>
+        <a href="${links.croma}" target="_blank" class="link-pill cm">Croma ↗</a>
       </div>
     </div>
+  `;
+};
 
-    <div class="compare-title">Price Comparison — ${prices.length} Stores</div>
-    <table class="compare-table">
-      <thead>
-        <tr>
-          <th>Store</th><th>Price</th><th>MRP</th><th>Discount</th><th>Stock</th><th>Action</th>
-        </tr>
-      </thead>
-      <tbody>${priceRows}</tbody>
-    </table>
-  </div>`;
-}
-
-function closeModal() {
-  document.getElementById('product-modal')?.classList.remove('open');
+window.closeModal = function() {
+  const modal = document.getElementById('product-modal');
+  if (modal) modal.classList.remove('open');
   document.body.style.overflow = '';
-}
-function closeModalOut(e) {
-  if (e.target.id === 'product-modal') closeModal();
+};
+
+// Global Listeners & Initialization
+function initDashboard() {
+  console.info('[dashboard.js] initialization');
+  if (typeof loadUserNav === 'function') loadUserNav();
+  window.fetchFeaturedProducts();
+  
+  if (typeof startDealCountdown === 'function') startDealCountdown();
+  
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+      e.preventDefault();
+      document.getElementById('nav-search-input')?.focus();
+    }
+    if (e.key === 'Escape') window.closeModal();
+  });
 }
 
-/* ════════════════════════════════════════
-   DEAL OF THE DAY COUNTDOWN
-   ════════════════════════════════════════ */
-function startDealCountdown() {
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
-  function tick() {
-    const diff = end - Date.now();
-    if (diff <= 0) { clearInterval(t); return; }
-    const h = String(Math.floor(diff/3600000)).padStart(2,'0');
-    const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
-    const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
-    const dh = document.getElementById('dh');
-    const dm = document.getElementById('dm');
-    const ds = document.getElementById('ds');
-    if(dh) dh.textContent = h;
-    if(dm) dm.textContent = m;
-    if(ds) ds.textContent = s;
-  }
-  tick();
-  const t = setInterval(tick, 1000);
-}
-
-/* ════════════════════════════════════════
-   WISHLIST
-   ════════════════════════════════════════ */
-function getWishlist() { return JSON.parse(localStorage.getItem('db_wishlist')||'[]'); }
-function isWishlisted(id) { return getWishlist().includes(id); }
-function toggleWishlist(id, btn) {
-  let list = getWishlist();
-  if (list.includes(id)) {
-    list = list.filter(x=>x!==id);
-    btn.innerHTML = '♡'; btn.classList.remove('wishlisted');
-    showToast('Removed from wishlist.','info');
-  } else {
-    list.push(id);
-    btn.innerHTML = '❤'; btn.classList.add('wishlisted');
-    showToast('❤ Added to wishlist!','success');
-  }
-  localStorage.setItem('db_wishlist', JSON.stringify(list));
-}
-
-/* ════════════════════════════════════════
-   PRICE ALERT & TRACK
-   ════════════════════════════════════════ */
-async function setAlert(productId, currentPrice) {
-  const token = localStorage.getItem('db_token');
-  if (!token) { showToast('Please sign in to set alerts.','error'); return; }
-  const target = prompt(`Set alert when price drops below:\nCurrent: ₹${fmtP(currentPrice)}\n\nEnter target price (₹):`);
-  if (!target || isNaN(target)) return;
-  try {
-    const res = await fetch('/api/alerts', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-      body: JSON.stringify({ productId, targetPrice: Number(target) })
-    });
-    if (res.ok) showToast('✅ Alert set! You\'ll be emailed when price drops.','success');
-    else showToast('Could not set alert.','error');
-  } catch { showToast('Network error.','error'); }
-}
-
-async function trackProduct(productId) {
-  const token = localStorage.getItem('db_token');
-  if (!token) { showToast('Please sign in to track products.','error'); return; }
-  try {
-    const res = await fetch(`/api/user/tracked/${productId}`, {
-      method:'POST', headers:{'Authorization':`Bearer ${token}`}
-    });
-    if (res.ok) showToast('📦 Now tracking this product!','success');
-    else showToast('Could not track product.','error');
-  } catch { showToast('Network error.','error'); }
-}
-
-/* ════════════════════════════════════════
-   HELPERS
-   ════════════════════════════════════════ */
-function fmtP(n) { return n ? Number(n).toLocaleString('en-IN') : '—'; }
-function escH(s) {
-  const d = document.createElement('div');
-  d.textContent = String(s||'');
-  return d.innerHTML;
-}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initDashboard);
+else initDashboard();

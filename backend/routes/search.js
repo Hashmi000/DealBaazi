@@ -35,33 +35,42 @@ router.get('/suggestions', async (req, res) => {
 
 /**
  * GET /api/search
- * Main search engine rebuilt from scratch
+ * Main search engine: Supports query 'q', 'category', 'sortBy', and 'page'
  */
 router.get('/', async (req, res) => {
   try {
     const { q, page = 1, category, sortBy } = req.query;
-    if (!q || q.trim().length < 2) return res.status(400).json({ message: 'Query too short.' });
-
-    const query = q.trim();
     const pageNum = Math.max(1, parseInt(page));
     const skip = (pageNum - 1) * PAGE_SIZE;
 
-    // 1. Build MongoDB Query
-    let dbQuery = { $text: { $search: query } };
-    
-    // If text search is unavailable or returns nothing, fallback to regex
-    let totalCount = await Product.countDocuments(dbQuery);
-    if (totalCount === 0) {
-      const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      dbQuery = { name: { $regex: regex } };
-      totalCount = await Product.countDocuments(dbQuery);
+    let dbQuery = {};
+
+    // 1. Build Query (Handle q, category, or both)
+    if (q && q.trim().length >= 2) {
+      const query = q.trim();
+      dbQuery = { $text: { $search: query } };
+      
+      // Fallback to regex if text search yields nothing
+      const tc = await Product.countDocuments(dbQuery);
+      if (tc === 0) {
+        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        dbQuery = { name: { $regex: regex } };
+      }
+    }
+
+    if (category && category !== 'all') {
+      // Map category name to DB values if needed (e.g. 'phones' -> 'Smartphones')
+      let catValue = category;
+      if (category === 'phones') catValue = 'Smartphones';
+      if (category === 'laptops') catValue = 'Laptops';
+      dbQuery.category = catValue;
     }
 
     // 2. Sorting
-    let sortOption = { score: { $meta: "textScore" } };
+    let sortOption = { createdAt: -1 }; // Default: Newest
+    if (dbQuery.$text) sortOption = { score: { $meta: "textScore" } };
     if (sortBy === 'price-low') sortOption = { bestPrice: 1 };
     if (sortBy === 'price-high') sortOption = { bestPrice: -1 };
-    if (sortBy === 'newest') sortOption = { createdAt: -1 };
 
     // 3. Execution
     const products = await Product.find(dbQuery)
@@ -70,9 +79,10 @@ router.get('/', async (req, res) => {
       .limit(PAGE_SIZE)
       .lean();
 
-    // 4. Format for "Scratch" Search Requirements
+    const totalCount = await Product.countDocuments(dbQuery);
+
+    // 4. Formatting
     const results = products.map(p => {
-      // Prioritize primary marketplace links
       const marketplaceLinks = {
         amazon: p.prices?.find(s => s.store.toLowerCase().includes('amazon'))?.url || `https://www.amazon.in/s?k=${encodeURIComponent(p.name)}`,
         flipkart: p.prices?.find(s => s.store.toLowerCase().includes('flipkart'))?.url || `https://www.flipkart.com/search?q=${encodeURIComponent(p.name)}`,
@@ -85,14 +95,12 @@ router.get('/', async (req, res) => {
         name: p.name,
         brand: p.brand,
         image: p.image,
-        description: p.description,
         category: p.category,
         bestPrice: p.bestPrice || 0,
         bestStore: p.bestStore || 'Marketplace',
         rating: p.rating || '4.5',
         reviews: p.reviews || 0,
-        marketplaceLinks,
-        specs: p.specs || {}
+        marketplaceLinks
       };
     });
 
@@ -101,12 +109,13 @@ router.get('/', async (req, res) => {
       totalCount,
       page: pageNum,
       hasMore: totalCount > pageNum * PAGE_SIZE,
-      query
+      query: q || '',
+      category: category || 'all'
     });
 
   } catch (err) {
     console.error('[Search API Error]:', err);
-    res.status(500).json({ message: 'Search engine encountered an error.' });
+    res.status(500).json({ message: 'Search engine failed.' });
   }
 });
 

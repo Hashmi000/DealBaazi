@@ -47,6 +47,12 @@ router.get('/:id', async (req, res) => {
       priceHistory: (product.priceHistory || []).slice(-30), // last 30 entries
       offers:       product.offers || [],
       lastScraped:  product.lastScraped,
+      marketplaceLinks: {
+        amazon: (product.prices || []).find(s => s.store.toLowerCase().includes('amazon'))?.url || `https://www.amazon.in/s?k=${encodeURIComponent(product.name)}`,
+        flipkart: (product.prices || []).find(s => s.store.toLowerCase().includes('flipkart'))?.url || `https://www.flipkart.com/search?q=${encodeURIComponent(product.name)}`,
+        reliance: (product.prices || []).find(s => s.store.toLowerCase().includes('reliance'))?.url || `https://www.reliancedigital.in/search?q=${encodeURIComponent(product.name)}`,
+        croma: (product.prices || []).find(s => s.store.toLowerCase().includes('croma'))?.url || `https://www.croma.com/search?q=${encodeURIComponent(product.name)}`
+      }
     });
 
   } catch (err) {
