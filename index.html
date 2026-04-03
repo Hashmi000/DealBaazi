@@ -1,165 +1,303 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DealBaazi — Track Every Deal</title>
-  <link rel="stylesheet" href="public/css/main.css" />
-  <link rel="stylesheet" href="public/css/login.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <title>DealBaazi — India's Smartest Price Tracker</title>
+  <link rel="stylesheet" href="public/css/design-system.css"/>
+  <link rel="stylesheet" href="public/css/login.css"/>
 </head>
 <body class="auth-page">
 
-  <div class="bg-grid"></div>
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-  <div class="blob blob-3"></div>
+<canvas id="auth-canvas"></canvas>
 
-  <div class="auth-wrapper">
+<div class="auth-shell">
 
-    <!-- Branding Side -->
-    <div class="brand-panel">
-      <div class="logo-mark">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">DealBaazi</span>
+  <!-- ══ LEFT: BRAND SIDE ══════════════════════ -->
+  <div class="brand-side">
+    <div class="brand-top">
+      <!-- Logo -->
+      <div class="brand-logo">
+        <div class="brand-logo-icon">⚡</div>
+        <span class="brand-logo-text">DealBaazi</span>
       </div>
-      <h1 class="brand-headline">Find the<br/><em>best price</em><br/>everywhere.</h1>
-      <p class="brand-sub">Track prices across Amazon, Flipkart, Meesho, Myntra & more — all in one place. Get alerts when prices drop.</p>
-      <div class="stats-row">
-        <div class="stat-chip"><strong>50M+</strong> Products</div>
-        <div class="stat-chip"><strong>20+</strong> Stores</div>
-        <div class="stat-chip"><strong>Free</strong> Alerts</div>
-      </div>
-      <div class="floating-cards">
-        <div class="fc fc-1">
-          <span class="fc-store">Amazon</span>
-          <span class="fc-price">₹12,499</span>
-          <span class="fc-badge lowest">Lowest!</span>
+
+      <!-- Headline -->
+      <h1 class="brand-headline">
+        Hunt the<br/>
+        <span class="em-word">best price</span><br/>
+        across India.
+      </h1>
+      <p class="brand-desc">
+        Compare prices on Amazon, Flipkart, Meesho, Myntra, Croma, Reliance Digital & more — all in one place. Set alerts. Save money.
+      </p>
+
+      <!-- Live price preview -->
+      <p class="price-strip-label">Live comparison — Sony WH-1000XM5</p>
+      <div class="price-strip">
+        <div class="pcard pcard-best">
+          <span class="pcard-store">Amazon India</span>
+          <span class="pcard-price">₹24,990</span>
+          <span class="badge badge-em">Lowest</span>
         </div>
-        <div class="fc fc-2">
-          <span class="fc-store">Flipkart</span>
-          <span class="fc-price">₹13,999</span>
+        <div class="pcard">
+          <span class="pcard-store">Flipkart</span>
+          <span class="pcard-price">₹26,490</span>
+          <span class="badge badge-grey">+₹1,500</span>
         </div>
-        <div class="fc fc-3">
-          <span class="fc-store">Meesho</span>
-          <span class="fc-price">₹14,200</span>
+        <div class="pcard">
+          <span class="pcard-store">Croma</span>
+          <span class="pcard-price">₹27,990</span>
+          <span class="badge badge-grey">+₹3,000</span>
+        </div>
+        <div class="pcard">
+          <span class="pcard-store">Reliance Digital</span>
+          <span class="pcard-price">₹28,500</span>
+          <span class="badge badge-grey">+₹3,510</span>
         </div>
       </div>
     </div>
 
-    <!-- Form Panel -->
-    <div class="form-panel">
-      <div class="auth-tabs">
-        <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Sign In</button>
-        <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+    <!-- Stats -->
+    <div class="brand-stats">
+      <div class="bstat">
+        <div class="bstat-num">50<span>M+</span></div>
+        <div class="bstat-lbl">Products</div>
+      </div>
+      <div class="bstat">
+        <div class="bstat-num">20<span>+</span></div>
+        <div class="bstat-lbl">Stores</div>
+      </div>
+      <div class="bstat">
+        <div class="bstat-num">₹0</div>
+        <div class="bstat-lbl">Always Free</div>
+      </div>
+      <div class="bstat">
+        <div class="bstat-num">Live</div>
+        <div class="bstat-lbl">Price Data</div>
+      </div>
+    </div>
+  </div><!-- /brand-side -->
+
+  <!-- ══ RIGHT: FORM SIDE ══════════════════════ -->
+  <div class="form-side">
+
+    <!-- Tab row -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+    </div>
+
+    <!-- ── LOGIN ── -->
+    <form class="auth-form active" id="form-login" onsubmit="handleLogin(event)">
+      <div>
+        <h2 class="auth-form-title">Welcome back</h2>
+        <p class="auth-form-sub">Sign in to your DealBaazi account</p>
       </div>
 
-      <!-- ── LOGIN FORM ── -->
-      <form class="auth-form active" id="form-login" onsubmit="handleLogin(event)">
-        <h2>Welcome back</h2>
-        <p class="form-sub">Sign in to your DealBaazi account</p>
-        <div class="input-group">
-          <label>Email address</label>
-          <input type="email" id="login-email" placeholder="you@example.com" required />
-        </div>
-        <div class="input-group">
-          <label>Password</label>
-          <input type="password" id="login-password" placeholder="••••••••" required />
-          <a href="#" class="forgot-link" onclick="showForgotModal(event)">Forgot password?</a>
-        </div>
-        <button type="submit" class="btn-primary" id="login-btn">Sign In <span>→</span></button>
-        <div class="divider"><span>or continue with</span></div>
-        <div class="social-btns">
-          <button type="button" class="btn-social" onclick="socialLogin('google')">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="Google"/> Google
-          </button>
-          <button type="button" class="btn-social" onclick="socialLogin('facebook')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> Facebook
-          </button>
-        </div>
-        <div id="login-msg" class="form-msg"></div>
-      </form>
-
-      <!-- ── SIGNUP STEP 1: Details ── -->
-      <form class="auth-form" id="form-signup" onsubmit="handleSignupStep1(event)">
-        <h2>Join DealBaazi</h2>
-        <p class="form-sub">Start saving money today — it's free</p>
-        <div class="input-row">
-          <div class="input-group">
-            <label>First Name</label>
-            <input type="text" id="signup-fname" placeholder="Rahul" required />
-          </div>
-          <div class="input-group">
-            <label>Last Name</label>
-            <input type="text" id="signup-lname" placeholder="Sharma" />
-          </div>
-        </div>
-        <div class="input-group">
-          <label>Email address</label>
-          <input type="email" id="signup-email" placeholder="you@example.com" required />
-        </div>
-        <div class="input-group">
-          <label>Password</label>
-          <input type="password" id="signup-password" placeholder="Min 8 characters" required />
-          <div class="password-strength" id="pw-strength"></div>
-        </div>
-        <div class="input-group">
-          <label>Confirm Password</label>
-          <input type="password" id="signup-confirm" placeholder="Repeat password" required />
-        </div>
-        <div class="terms-check">
-          <input type="checkbox" id="terms" required />
-          <label for="terms">I agree to the <a href="pages/terms.html">Terms of Service</a> & <a href="pages/privacy.html">Privacy Policy</a></label>
-        </div>
-        <button type="submit" class="btn-primary" id="signup-btn">
-          <span id="signup-btn-text">Send Verification Code →</span>
-          <span id="signup-spinner" class="spinner" style="display:none"></span>
-        </button>
-        <div id="signup-msg" class="form-msg"></div>
-      </form>
-
-      <!-- ── SIGNUP STEP 2: OTP Verification ── -->
-      <div class="auth-form" id="form-otp">
-        <div class="otp-header">
-          <button class="back-btn" onclick="backToSignup()">← Back</button>
-          <div class="otp-icon">📧</div>
-          <h2>Check your email</h2>
-          <p class="form-sub" id="otp-email-display">We sent a 6-digit code to <strong></strong></p>
-        </div>
-
-        <div class="otp-inputs" id="otp-inputs">
-          <input type="text" class="otp-box" maxlength="1" data-index="0" oninput="otpInput(this)" onkeydown="otpKeydown(event,this)" />
-          <input type="text" class="otp-box" maxlength="1" data-index="1" oninput="otpInput(this)" onkeydown="otpKeydown(event,this)" />
-          <input type="text" class="otp-box" maxlength="1" data-index="2" oninput="otpInput(this)" onkeydown="otpKeydown(event,this)" />
-          <input type="text" class="otp-box" maxlength="1" data-index="3" oninput="otpInput(this)" onkeydown="otpKeydown(event,this)" />
-          <input type="text" class="otp-box" maxlength="1" data-index="4" oninput="otpInput(this)" onkeydown="otpKeydown(event,this)" />
-          <input type="text" class="otp-box" maxlength="1" data-index="5" oninput="otpInput(this)" onkeydown="otpKeydown(event,this)" />
-        </div>
-
-        <div class="otp-timer">
-          Code expires in <span id="otp-timer-display">10:00</span>
-        </div>
-
-        <button class="btn-primary" id="otp-verify-btn" onclick="verifyOtp()">
-          <span id="otp-btn-text">Verify & Create Account</span>
-          <span id="otp-spinner" class="spinner" style="display:none"></span>
-        </button>
-
-        <div class="otp-resend">
-          Didn't receive it?
-          <button class="resend-link" id="resend-btn" onclick="resendOtp()" disabled>
-            Resend code (<span id="resend-countdown">60</span>s)
-          </button>
-        </div>
-
-        <div id="otp-msg" class="form-msg"></div>
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required/>
       </div>
 
-    </div><!-- /form-panel -->
-  </div><!-- /auth-wrapper -->
+      <div class="field">
+        <label>Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" required/>
+          <button type="button" class="pw-toggle" onclick="togglePw('login-password',this)" tabindex="-1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <a href="#" class="forgot-link">Forgot password?</a>
+      </div>
 
-  <script src="public/js/utils.js"></script>
-  <script src="public/js/auth.js"></script>
+      <button type="submit" class="btn btn-em btn-full" id="login-btn">
+        Sign In
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+
+      <div class="divider">or continue with</div>
+
+      <div class="social-grid">
+        <button type="button" class="btn-social" onclick="socialLogin('google')">
+          <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Google
+        </button>
+        <button type="button" class="btn-social" onclick="socialLogin('facebook')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </button>
+      </div>
+
+      <div id="login-msg" class="form-msg"></div>
+    </form>
+
+    <!-- ── SIGN UP STEP 1 ── -->
+    <form class="auth-form" id="form-signup" onsubmit="handleSignupStep1(event)">
+      <div>
+        <h2 class="auth-form-title">Join DealBaazi</h2>
+        <p class="auth-form-sub">Free forever. Start saving today.</p>
+      </div>
+
+      <div class="input-row">
+        <div class="field">
+          <label>First Name</label>
+          <input type="text" id="signup-fname" placeholder="Rahul" autocomplete="given-name" required/>
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <input type="text" id="signup-lname" placeholder="Sharma" autocomplete="family-name"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" required/>
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="signup-password" placeholder="Min 8 characters" autocomplete="new-password" required
+                 oninput="updateStrength(this.value)"/>
+          <button type="button" class="pw-toggle" onclick="togglePw('signup-password',this)" tabindex="-1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+      </div>
+
+      <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" id="signup-confirm" placeholder="Repeat password" autocomplete="new-password" required/>
+      </div>
+
+      <div class="terms-row">
+        <input type="checkbox" id="terms" required/>
+        <label for="terms">I agree to the <a href="pages/terms.html">Terms of Service</a> &amp; <a href="pages/privacy.html">Privacy Policy</a></label>
+      </div>
+
+      <button type="submit" class="btn btn-em btn-full" id="signup-btn">
+        <span id="signup-btn-text">Send Verification Code</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+
+      <div id="signup-msg" class="form-msg"></div>
+    </form>
+
+    <!-- ── OTP STEP 2 ── -->
+    <div class="otp-screen" id="form-otp">
+      <button class="otp-back" onclick="backToSignup()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+      <div class="otp-icon-wrap">📧</div>
+      <div>
+        <h2 class="auth-form-title">Verify your email</h2>
+        <p class="auth-form-sub" id="otp-sub-text">We sent a 6-digit code to your email.</p>
+      </div>
+
+      <div class="otp-boxes" id="otp-boxes">
+        <input class="otp-box" type="text" maxlength="1" data-idx="0" oninput="otpInput(this)" onkeydown="otpKey(event,this)"/>
+        <input class="otp-box" type="text" maxlength="1" data-idx="1" oninput="otpInput(this)" onkeydown="otpKey(event,this)"/>
+        <input class="otp-box" type="text" maxlength="1" data-idx="2" oninput="otpInput(this)" onkeydown="otpKey(event,this)"/>
+        <input class="otp-box" type="text" maxlength="1" data-idx="3" oninput="otpInput(this)" onkeydown="otpKey(event,this)"/>
+        <input class="otp-box" type="text" maxlength="1" data-idx="4" oninput="otpInput(this)" onkeydown="otpKey(event,this)"/>
+        <input class="otp-box" type="text" maxlength="1" data-idx="5" oninput="otpInput(this)" onkeydown="otpKey(event,this)"/>
+      </div>
+
+      <div class="otp-meta">
+        <span>Expires in <span class="otp-timer" id="otp-timer">10:00</span></span>
+        <button class="otp-resend-btn" id="otp-resend" onclick="resendOtp()" disabled>
+          Resend (<span id="otp-resend-cd">60</span>s)
+        </button>
+      </div>
+
+      <button class="btn btn-em btn-full" id="otp-verify-btn" onclick="verifyOtp()">
+        <span id="otp-btn-text">Verify &amp; Create Account</span>
+      </button>
+
+      <div id="otp-msg" class="form-msg"></div>
+    </div>
+
+  </div><!-- /form-side -->
+</div><!-- /auth-shell -->
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="public/js/auth.js"></script>
+<script>
+  /* ── Animated canvas background ── */
+  (function(){
+    const canvas = document.getElementById('auth-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, particles = [];
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    for(let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * 2000, y: Math.random() * 1200,
+        r: Math.random() * 1.5 + 0.3,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: (Math.random() - 0.5) * 0.2,
+        opacity: Math.random() * 0.4 + 0.05
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,W,H);
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 0) p.x = W; if(p.x > W) p.x = 0;
+        if(p.y < 0) p.y = H; if(p.y > H) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(16,185,129,${p.opacity})`;
+        ctx.fill();
+      });
+      // Draw connecting lines between nearby particles
+      for(let i=0;i<particles.length;i++) {
+        for(let j=i+1;j<particles.length;j++) {
+          const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+          const dist=Math.sqrt(dx*dx+dy*dy);
+          if(dist<120) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x,particles[i].y);
+            ctx.lineTo(particles[j].x,particles[j].y);
+            ctx.strokeStyle=`rgba(16,185,129,${0.06*(1-dist/120)})`;
+            ctx.lineWidth=0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  /* Password show/hide */
+  function togglePw(inputId, btn) {
+    const inp = document.getElementById(inputId);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.style.opacity = inp.type === 'text' ? '1' : '';
+  }
+
+  /* Strength meter */
+  function updateStrength(val) {
+    const fill = document.getElementById('strength-fill');
+    if(!fill) return;
+    const score = [val.length>=8, /[A-Z]/.test(val), /\d/.test(val), /[^A-Za-z0-9]/.test(val)].filter(Boolean).length;
+    const map = ['','#ef4444','#f59e0b','#10b981','#10b981'];
+    const pct = ['0%','30%','55%','80%','100%'];
+    fill.style.width      = pct[score];
+    fill.style.background = map[score];
+  }
+</script>
 </body>
 </html>

@@ -1,15 +1,11 @@
-/* ===================================================
-   DealBaazi — auth.js  (updated: OTP registration)
-   =================================================== */
+/* ============================================================
+   DealBaazi v2 — auth.js  (full OTP registration flow)
+   ============================================================ */
 
-// Temp storage for signup data between steps
-let _signupData = null;
-let _otpTimer   = null;
-let _resendTimer = null;
+const API_BASE = '/api';
+let _signupData = null, _otpTimer = null, _resendTimer = null;
 
-/* ════════════════════════════════════════
-   TAB SWITCHING
-   ════════════════════════════════════════ */
+/* ── Tab Switch ─────────────────────────────────── */
 function switchTab(tab) {
   ['login','signup'].forEach(t => {
     document.getElementById(`form-${t}`)?.classList.remove('active');
@@ -20,357 +16,185 @@ function switchTab(tab) {
   document.getElementById(`tab-${tab}`)?.classList.add('active');
 }
 
-/* ════════════════════════════════════════
-   LOGIN
-   ════════════════════════════════════════ */
+/* ── Login ──────────────────────────────────────── */
 async function handleLogin(e) {
   e.preventDefault();
-  const email    = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const msg      = document.getElementById('login-msg');
-  const btn      = document.getElementById('login-btn');
-
-  if (!email || !password) { showMsg(msg,'Please fill in all fields.','error'); return; }
-
-  setLoading(btn, true, 'Signing In...');
-
+  const email = document.getElementById('login-email').value.trim();
+  const pwd   = document.getElementById('login-password').value;
+  const msg   = document.getElementById('login-msg');
+  const btn   = document.getElementById('login-btn');
+  if (!email||!pwd) { showMsg(msg,'Please fill in all fields.','error'); return; }
+  setBtn(btn, true);
   try {
-    const res  = await fetch(`${API_BASE}/auth/login`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
-      body: JSON.stringify({ email, password })
-    });
+    const res  = await fetch(`${API_BASE}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email,password:pwd})});
     const data = await res.json();
-
-    if (!res.ok) { showMsg(msg, data.message || 'Login failed. Check credentials.','error'); return; }
-
+    if (!res.ok) { showMsg(msg, data.message||'Login failed.','error'); return; }
     localStorage.setItem('db_token', data.token);
-    localStorage.setItem('db_user', JSON.stringify(data.user));
-    showMsg(msg,'Signed in! Redirecting...','success');
-    setTimeout(() => { window.location.href = 'pages/dashboard.html'; }, 700);
-
-  } catch { showMsg(msg,'Network error. Please try again.','error'); }
-  finally  { setLoading(btn, false, 'Sign In <span>→</span>'); }
+    localStorage.setItem('db_user',  JSON.stringify(data.user));
+    showMsg(msg,'Signed in! Redirecting…','success');
+    setTimeout(()=>{ window.location.href='pages/dashboard.html'; }, 700);
+  } catch { showMsg(msg,'Network error. Try again.','error'); }
+  finally   { setBtn(btn, false, 'Sign In <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'); }
 }
 
-/* ════════════════════════════════════════
-   SIGNUP — STEP 1: Collect details & send OTP
-   ════════════════════════════════════════ */
+/* ── Signup Step 1 ──────────────────────────────── */
 async function handleSignupStep1(e) {
   e.preventDefault();
-  const fname    = document.getElementById('signup-fname').value.trim();
-  const lname    = document.getElementById('signup-lname').value.trim();
-  const email    = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value;
-  const confirm  = document.getElementById('signup-confirm').value;
-  const msg      = document.getElementById('signup-msg');
-  const btn      = document.getElementById('signup-btn');
-
-  if (!fname || !email || !password) { showMsg(msg,'Please fill in all required fields.','error'); return; }
-  if (password.length < 8)           { showMsg(msg,'Password must be at least 8 characters.','error'); return; }
-  if (password !== confirm)          { showMsg(msg,'Passwords do not match.','error'); return; }
-
-  setLoading(btn, true, '');
-
+  const fname = document.getElementById('signup-fname').value.trim();
+  const lname = document.getElementById('signup-lname').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pwd   = document.getElementById('signup-password').value;
+  const conf  = document.getElementById('signup-confirm').value;
+  const msg   = document.getElementById('signup-msg');
+  const btn   = document.getElementById('signup-btn');
+  if (!fname||!email||!pwd) { showMsg(msg,'Please fill in all required fields.','error'); return; }
+  if (pwd.length<8)         { showMsg(msg,'Password must be at least 8 characters.','error'); return; }
+  if (pwd!==conf)           { showMsg(msg,'Passwords do not match.','error'); return; }
+  setBtn(btn, true);
   try {
-    const res  = await fetch(`${API_BASE}/auth/send-otp`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email })
-    });
-    const data = await res.json();
-
-    if (!res.ok) { showMsg(msg, data.message || 'Could not send OTP. Try again.','error'); return; }
-
-    // Save data for step 2
-    _signupData = { firstName: fname, lastName: lname, email, password };
-
-    // Show OTP screen
+    const res = await fetch(`${API_BASE}/auth/send-otp`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const data= await res.json();
+    if (!res.ok) { showMsg(msg, data.message||'Could not send OTP.','error'); return; }
+    _signupData = { firstName:fname, lastName:lname, email, password:pwd };
     showOtpScreen(email);
-
-  } catch { showMsg(msg,'Network error. Please try again.','error'); }
-  finally  { setLoading(btn, false, 'Send Verification Code →'); }
+  } catch { showMsg(msg,'Network error. Try again.','error'); }
+  finally { setBtn(btn, false, '<span id="signup-btn-text">Send Verification Code</span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'); }
 }
 
-/* ════════════════════════════════════════
-   OTP SCREEN — show / hide
-   ════════════════════════════════════════ */
+/* ── OTP Screen ─────────────────────────────────── */
 function showOtpScreen(email) {
   document.getElementById('form-signup').classList.remove('active');
-
-  const otpForm = document.getElementById('form-otp');
-  otpForm.classList.add('active');
-
-  // Show email in message
-  const el = document.getElementById('otp-email-display');
-  if (el) el.innerHTML = `We sent a 6-digit code to <strong>${email}</strong>`;
-
-  // Clear boxes
-  document.querySelectorAll('.otp-box').forEach(b => { b.value=''; b.classList.remove('filled','error-shake'); });
+  const otp = document.getElementById('form-otp');
+  otp.classList.add('active');
+  const sub = document.getElementById('otp-sub-text');
+  if (sub) sub.innerHTML = `We sent a 6-digit code to <strong style="color:var(--em)">${email}</strong>`;
+  document.querySelectorAll('.otp-box').forEach(b=>{ b.value=''; b.classList.remove('filled','shake'); });
   document.querySelector('.otp-box')?.focus();
-
-  // Start 10-min countdown
-  startOtpTimer(10 * 60);
-
-  // Start 60-sec resend lockout
-  startResendCountdown(60);
-
-  document.getElementById('otp-msg').className = 'form-msg';
-  document.getElementById('otp-msg').textContent = '';
+  startOtpCountdown(600);
+  startResendCD(60);
+  const m = document.getElementById('otp-msg');
+  if(m){ m.className='form-msg'; m.textContent=''; }
 }
 
 function backToSignup() {
   document.getElementById('form-otp').classList.remove('active');
   document.getElementById('form-signup').classList.add('active');
-  clearInterval(_otpTimer);
-  clearInterval(_resendTimer);
+  clearInterval(_otpTimer); clearInterval(_resendTimer);
 }
 
-/* ════════════════════════════════════════
-   OTP INPUT HANDLING
-   ════════════════════════════════════════ */
+/* ── OTP Input ──────────────────────────────────── */
 function otpInput(box) {
-  // Allow only digits
   box.value = box.value.replace(/\D/g,'');
-  box.classList.toggle('filled', box.value !== '');
-
-  // Auto-advance
-  if (box.value && box.dataset.index < 5) {
-    const next = document.querySelector(`.otp-box[data-index="${parseInt(box.dataset.index)+1}"]`);
+  box.classList.toggle('filled', !!box.value);
+  if (box.value) {
+    const next = document.querySelector(`.otp-box[data-idx="${+box.dataset.idx+1}"]`);
     next?.focus();
   }
-
-  // Auto-submit when all 6 filled
-  const allFilled = [...document.querySelectorAll('.otp-box')].every(b => b.value);
-  if (allFilled) verifyOtp();
+  if ([...document.querySelectorAll('.otp-box')].every(b=>b.value)) verifyOtp();
 }
 
-function otpKeydown(e, box) {
-  if (e.key === 'Backspace' && !box.value && box.dataset.index > 0) {
-    const prev = document.querySelector(`.otp-box[data-index="${parseInt(box.dataset.index)-1}"]`);
+function otpKey(e, box) {
+  if (e.key==='Backspace' && !box.value && box.dataset.idx>0) {
+    const prev = document.querySelector(`.otp-box[data-idx="${+box.dataset.idx-1}"]`);
     if (prev) { prev.value=''; prev.classList.remove('filled'); prev.focus(); }
   }
-  // Allow paste on first box
-  if (e.key === 'v' && (e.ctrlKey || e.metaKey) && box.dataset.index == 0) {
-    setTimeout(() => handleOtpPaste(), 50);
-  }
 }
 
-function handleOtpPaste() {
-  const text = document.querySelector('.otp-box').value.replace(/\D/g,'').slice(0,6);
-  const boxes = document.querySelectorAll('.otp-box');
-  [...text].forEach((ch, i) => { if(boxes[i]){ boxes[i].value=ch; boxes[i].classList.add('filled'); } });
-  boxes[Math.min(text.length, 5)]?.focus();
-  if (text.length === 6) verifyOtp();
-}
-
-/* Paste event on the whole otp-inputs div */
-document.addEventListener('paste', (e) => {
+document.addEventListener('paste', e => {
   if (!document.getElementById('form-otp')?.classList.contains('active')) return;
   const text = (e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
-  if (text.length < 4) return;
+  if (text.length<4) return;
+  e.preventDefault();
   const boxes = document.querySelectorAll('.otp-box');
-  [...text].forEach((ch,i) => { if(boxes[i]){ boxes[i].value=ch; boxes[i].classList.add('filled'); } });
+  [...text].forEach((c,i)=>{ if(boxes[i]){ boxes[i].value=c; boxes[i].classList.add('filled'); } });
   boxes[Math.min(text.length,5)]?.focus();
-  if (text.length===6) setTimeout(verifyOtp,100);
+  if(text.length===6) setTimeout(verifyOtp,80);
 });
 
-/* ════════════════════════════════════════
-   SIGNUP — STEP 2: Verify OTP & create account
-   ════════════════════════════════════════ */
+/* ── Verify OTP ─────────────────────────────────── */
 async function verifyOtp() {
   const otp = [...document.querySelectorAll('.otp-box')].map(b=>b.value).join('');
   const msg = document.getElementById('otp-msg');
   const btn = document.getElementById('otp-verify-btn');
-
-  if (otp.length < 6) { showMsg(msg,'Please enter all 6 digits.','error'); return; }
-  if (!_signupData)   { showMsg(msg,'Session expired. Please try again.','error'); backToSignup(); return; }
-
-  setLoading(btn, true, '');
-
+  if (otp.length<6) { showMsg(msg,'Enter all 6 digits.','error'); return; }
+  if (!_signupData) { showMsg(msg,'Session expired. Go back and try again.','error'); return; }
+  setBtn(btn, true);
   try {
-    const res  = await fetch(`${API_BASE}/auth/register`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ ..._signupData, otp })
-    });
-    const data = await res.json();
-
+    const res = await fetch(`${API_BASE}/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({..._signupData,otp})});
+    const data= await res.json();
     if (!res.ok) {
-      if (data.code === 'INVALID_OTP' || data.code === 'OTP_EXPIRED') {
-        shakeOtpBoxes();
-        showMsg(msg, data.message || 'Invalid or expired code.','error');
-      } else {
-        showMsg(msg, data.message || 'Registration failed.','error');
-      }
-      return;
+      if (data.code==='INVALID_OTP'||data.code==='OTP_EXPIRED') shakeBoxes();
+      showMsg(msg, data.message||'Invalid code.','error'); return;
     }
-
-    clearInterval(_otpTimer);
-    clearInterval(_resendTimer);
-    _signupData = null;
-
+    clearInterval(_otpTimer); clearInterval(_resendTimer); _signupData=null;
     localStorage.setItem('db_token', data.token);
-    localStorage.setItem('db_user', JSON.stringify(data.user));
-    showMsg(msg,'🎉 Account created! Redirecting...','success');
-    setTimeout(() => { window.location.href = 'pages/dashboard.html'; }, 900);
-
-  } catch { showMsg(msg,'Network error. Please try again.','error'); }
-  finally  { setLoading(btn, false, 'Verify & Create Account'); }
+    localStorage.setItem('db_user',  JSON.stringify(data.user));
+    showMsg(msg,'🎉 Welcome to DealBaazi! Redirecting…','success');
+    setTimeout(()=>{ window.location.href='pages/dashboard.html'; },900);
+  } catch { showMsg(msg,'Network error.','error'); }
+  finally { setBtn(btn,false,'<span id="otp-btn-text">Verify &amp; Create Account</span>'); }
 }
 
-function shakeOtpBoxes() {
-  document.querySelectorAll('.otp-box').forEach(b => {
-    b.classList.remove('error-shake');
-    void b.offsetWidth; // reflow
-    b.classList.add('error-shake');
-    setTimeout(() => b.classList.remove('error-shake'), 500);
-  });
+function shakeBoxes() {
+  document.querySelectorAll('.otp-box').forEach(b=>{ b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); setTimeout(()=>b.classList.remove('shake'),450); });
 }
 
-/* ════════════════════════════════════════
-   RESEND OTP
-   ════════════════════════════════════════ */
+/* ── Resend ─────────────────────────────────────── */
 async function resendOtp() {
   if (!_signupData) return;
-  const msg = document.getElementById('otp-msg');
-
   try {
-    const res = await fetch(`${API_BASE}/auth/send-otp`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email: _signupData.email })
-    });
-    if (res.ok) {
-      showMsg(msg,'New code sent!','success');
-      startOtpTimer(10 * 60);
-      startResendCountdown(60);
-    } else {
-      showMsg(msg,'Failed to resend. Try again in a moment.','error');
-    }
-  } catch { showMsg(msg,'Network error.','error'); }
+    const res = await fetch(`${API_BASE}/auth/send-otp`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:_signupData.email})});
+    if (res.ok) { showMsg(document.getElementById('otp-msg'),'New code sent!','success'); startOtpCountdown(600); startResendCD(60); }
+    else showMsg(document.getElementById('otp-msg'),'Failed to resend.','error');
+  } catch {}
 }
 
-/* ════════════════════════════════════════
-   TIMERS
-   ════════════════════════════════════════ */
-function startOtpTimer(seconds) {
+/* ── Timers ─────────────────────────────────────── */
+function startOtpCountdown(secs) {
   clearInterval(_otpTimer);
-  const display = document.getElementById('otp-timer-display');
-  let remaining = seconds;
-
-  function tick() {
-    const m = String(Math.floor(remaining/60)).padStart(2,'0');
-    const s = String(remaining % 60).padStart(2,'0');
-    if (display) display.textContent = `${m}:${s}`;
-    if (remaining <= 0) {
-      clearInterval(_otpTimer);
-      if (display) display.textContent = 'Expired';
-    }
-    remaining--;
-  }
-  tick();
-  _otpTimer = setInterval(tick, 1000);
+  let s=secs;
+  const el=document.getElementById('otp-timer');
+  const tick=()=>{ if(el) el.textContent=`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; if(s<=0){clearInterval(_otpTimer);if(el)el.textContent='Expired';} s--; };
+  tick(); _otpTimer=setInterval(tick,1000);
 }
-
-function startResendCountdown(seconds) {
+function startResendCD(secs) {
   clearInterval(_resendTimer);
-  const btn = document.getElementById('resend-btn');
-  const countEl = document.getElementById('resend-countdown');
-  if (btn) btn.disabled = true;
-  let remaining = seconds;
-
-  function tick() {
-    if (countEl) countEl.textContent = remaining;
-    if (remaining <= 0) {
-      clearInterval(_resendTimer);
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = 'Resend code';
-      }
-    }
-    remaining--;
-  }
-  tick();
-  _resendTimer = setInterval(tick, 1000);
+  let s=secs;
+  const btn=document.getElementById('otp-resend'), cd=document.getElementById('otp-resend-cd');
+  if(btn) btn.disabled=true;
+  const tick=()=>{ if(cd) cd.textContent=s; if(s<=0){clearInterval(_resendTimer);if(btn){btn.disabled=false;btn.innerHTML='Resend code';}} s--; };
+  tick(); _resendTimer=setInterval(tick,1000);
 }
 
-/* ════════════════════════════════════════
-   PASSWORD STRENGTH METER
-   ════════════════════════════════════════ */
-const pwInput = document.getElementById('signup-password');
-if (pwInput) {
-  pwInput.addEventListener('input', () => {
-    const val = pwInput.value;
-    const bar = document.getElementById('pw-strength');
-    if (!bar) return;
-    if (val.length < 1) { bar.className='password-strength'; return; }
-    const score = (val.length>=8?1:0) + (/[A-Z]/.test(val)?1:0) + (/\d/.test(val)?1:0) + (/[^A-Za-z0-9]/.test(val)?1:0);
-    bar.className = 'password-strength ' + (score<=1?'weak':score<=2?'medium':'strong');
-  });
-}
+/* ── Social ─────────────────────────────────────── */
+function socialLogin(p) { window.location.href=`${API_BASE}/auth/${p}`; }
 
-/* ════════════════════════════════════════
-   SOCIAL AUTH
-   ════════════════════════════════════════ */
-function socialLogin(provider) {
-  window.location.href = `${API_BASE}/auth/${provider}`;
-}
+/* ── Logout ─────────────────────────────────────── */
+function logout() { localStorage.removeItem('db_token'); localStorage.removeItem('db_user'); window.location.href='../index.html'; }
 
-/* ════════════════════════════════════════
-   LOGOUT
-   ════════════════════════════════════════ */
-function logout() {
-  localStorage.removeItem('db_token');
-  localStorage.removeItem('db_user');
-  window.location.href = '../index.html';
-}
-
-/* ════════════════════════════════════════
-   NAV USER INIT
-   ════════════════════════════════════════ */
+/* ── Nav user ───────────────────────────────────── */
 function loadUserNav() {
-  const user = JSON.parse(localStorage.getItem('db_user') || '{}');
-  const el   = document.getElementById('user-initial');
-  if (el && user.firstName) el.textContent = user.firstName[0].toUpperCase();
-}
-function toggleDropdown() {
-  document.getElementById('nav-dropdown')?.classList.toggle('open');
-}
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.nav-avatar')) document.getElementById('nav-dropdown')?.classList.remove('open');
-});
-
-/* ════════════════════════════════════════
-   HELPERS
-   ════════════════════════════════════════ */
-function showMsg(el, text, type) {
-  if (!el) return;
-  el.textContent = text;
-  el.className   = `form-msg ${type}`;
+  const user=JSON.parse(localStorage.getItem('db_user')||'{}');
+  const el=document.getElementById('nav-avatar')||document.getElementById('user-initial');
+  if(el&&user.firstName) el.textContent=user.firstName[0].toUpperCase();
 }
 
-function setLoading(btn, loading, label) {
-  if (!btn) return;
-  if (loading) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
-  } else {
-    btn.disabled = false;
-    btn.innerHTML = label;
-  }
+/* ── Helpers ────────────────────────────────────── */
+function showMsg(el,text,type) { if(!el)return; el.textContent=text; el.className=`form-msg ${type}`; }
+function setBtn(btn,loading,label='') {
+  if(!btn)return;
+  btn.disabled=loading;
+  if(loading) btn.innerHTML='<span class="spinner"></span>';
+  else if(label) btn.innerHTML=label;
 }
-
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-  container.appendChild(toast);
-  setTimeout(() => toast.remove(), 3500);
+function showToast(message,type='info') {
+  const c=document.getElementById('toast-container'); if(!c)return;
+  const t=document.createElement('div'); t.className=`toast ${type}`; t.textContent=message;
+  c.appendChild(t); setTimeout(()=>t.remove(),3500);
 }
-
 function requireAuth() {
-  const token = localStorage.getItem('db_token');
-  if (!token) { window.location.href = '../index.html'; return null; }
-  return JSON.parse(localStorage.getItem('db_user') || '{}');
+  const tok=localStorage.getItem('db_token'); if(!tok){window.location.href='../index.html';return null;}
+  return JSON.parse(localStorage.getItem('db_user')||'{}');
 }
 
-if (document.getElementById('user-initial')) loadUserNav();
+if(document.getElementById('nav-avatar')) loadUserNav();
