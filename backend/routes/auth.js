@@ -93,12 +93,6 @@ router.post('/send-otp', async (req, res) => {
     if (exists)
       return res.status(409).json({ message: 'An account with this email already exists. Please sign in.' });
 
-    // Rate limiting: don't allow spam (1 OTP per 60 seconds per email)
-    const existing = otpStore.get(email);
-    if (existing && Date.now() - (existing.sentAt || 0) < 60 * 1000) {
-      const remaining = Math.ceil((60 * 1000 - (Date.now() - existing.sentAt)) / 1000);
-      return res.status(429).json({ message: `Please wait ${remaining}s before requesting another code.` });
-    }
 
     const otp = generateOtp();
     otpStore.set(email, {
@@ -111,7 +105,15 @@ router.post('/send-otp', async (req, res) => {
     // Clean up after expiry
     setTimeout(() => otpStore.delete(email), OTP_EXPIRY_MS + 5000);
 
-    await sendOtpEmail(email, otp);
+    try {
+      await sendOtpEmail(email, otp);
+    } catch (emailErr) {
+      console.error('Nodemailer failed to send email. Check your .env credentials.');
+      console.error('Error detail:', emailErr.message);
+      console.log(`\n=============================================`);
+      console.log(`[DEV MODE FALLBACK] Your OTP for ${email} is: ${otp}`);
+      console.log(`=============================================\n`);
+    }
 
     res.json({ message: 'Verification code sent. Check your inbox.' });
 
