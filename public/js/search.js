@@ -7,23 +7,17 @@ let currentResults = [];
 let currentPage = 1;
 let currentQuery = '';
 
+const API_BASE = '/api';
+
 /* ── Trigger Search ────────────────────────────── */
 function triggerSearch() {
   const heroInput = document.getElementById('hero-search-input');
   const navInput  = document.getElementById('nav-search-input');
-  const heroVisible = document.getElementById('hero-section')?.style.display !== 'none';
-
-  // If hero is visible, prioritize it. If hidden (already searched), prioritize navbar.
-  let query = '';
-  if (heroVisible) {
-    query = (heroInput?.value || navInput?.value || '').trim();
-  } else {
-    query = (navInput?.value || heroInput?.value || '').trim();
-  }
-
+  
+  let query = (heroInput?.value || navInput?.value || '').trim();
   if (!query) return;
 
-  // Sync both inputs to the selected query for consistency
+  // Sync both inputs
   if (heroInput) heroInput.value = query;
   if (navInput)  navInput.value  = query;
 
@@ -31,10 +25,15 @@ function triggerSearch() {
   currentPage  = 1;
   currentResults = [];
 
-  // Hide hero, show results
+  // Hide dashboard sections, show results
   const hero = document.getElementById('hero-section');
+  const main = document.getElementById('main-content');
+  const deal = document.getElementById('deal-banner');
   const results = document.getElementById('results-section');
+  
   if (hero) hero.style.display = 'none';
+  if (main) main.style.display = 'none';
+  if (deal) deal.style.display = 'none';
   if (results) results.style.display = 'block';
 
   // Update URL
@@ -42,6 +41,7 @@ function triggerSearch() {
   url.searchParams.set('q', query);
   window.history.pushState({}, '', url);
 
+  console.log(`[Search] Triggering search for: ${query}`);
   fetchResults(query, 1);
 }
 
