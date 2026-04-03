@@ -266,10 +266,10 @@ body.auth-page::before {
 }
 
 .otp-boxes {
-  display: flex; gap: 10px;
+  display: flex; gap: 10px; width: 100%;
 }
 .otp-box {
-  flex: 1; height: 58px; text-align: center;
+  flex: 1; min-width: 0; height: 58px; text-align: center;
   font-family: var(--font-head); font-size: 1.5rem; font-weight: 600;
   background: var(--bg-raised); border: 2px solid var(--line);
   border-radius: var(--r-sm); color: var(--t1);
@@ -278,6 +278,11 @@ body.auth-page::before {
 .otp-box:focus { outline: none; border-color: var(--em); background: var(--bg-hover); box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
 .otp-box.filled { border-color: var(--em); }
 .otp-box.shake  { animation: shakeX 0.4s ease; border-color: var(--red); }
+
+@media (max-width: 420px) {
+  .otp-boxes { gap: 6px; }
+  .otp-box { height: 50px; font-size: 1.2rem; }
+}
 
 @keyframes shakeX {
   0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
