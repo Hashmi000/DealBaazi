@@ -216,54 +216,105 @@ async function openProductModal(productId) {
 }
 
 function renderModal(p) {
-  const storeRows = (p.prices || []).map((s, i) => `
+  // ── Store price rows ──────────────────────────
+  const storeRows = (p.prices || []).map((s, i) => {
+    const discount = s.originalPrice && s.originalPrice > s.price
+      ? Math.round((1 - s.price / s.originalPrice) * 100) : 0;
+    const storeBadge = {
+      'Amazon':           '🟠',
+      'Flipkart':         '🔵',
+      'Meesho':           '🩷',
+      'Myntra':           '🟣',
+      'Croma':            '🟢',
+      'Reliance Digital': '🔴',
+    }[s.store] || '🛒';
+
+    return `
     <tr class="${i === 0 ? 'best-row' : ''}">
-      <td class="store-name">${escapeHTML(s.store)}${i === 0 ? ' 🏆' : ''}</td>
-      <td><strong>₹${formatPrice(s.price)}</strong></td>
-      <td>${s.originalPrice ? `<span style="text-decoration:line-through;color:var(--text-3)">₹${formatPrice(s.originalPrice)}</span>` : '—'}</td>
-      <td>${s.originalPrice ? `<span class="badge green">${Math.round((1 - s.price/s.originalPrice)*100)}% off</span>` : '—'}</td>
-      <td>${s.inStock ? '<span class="badge green">In Stock</span>' : '<span class="badge red">Out of Stock</span>'}</td>
-      <td><a href="${s.url || '#'}" target="_blank" rel="noopener" class="buy-btn" onclick="event.stopPropagation()">Buy →</a></td>
+      <td class="store-name">${storeBadge} ${escapeHTML(s.store)}${i === 0 ? ' <span class="badge green" style="font-size:0.65rem;padding:2px 6px">BEST</span>' : ''}</td>
+      <td><strong style="font-size:1.05rem">₹${formatPrice(s.price)}</strong></td>
+      <td>${s.originalPrice && s.originalPrice > s.price ? `<span style="text-decoration:line-through;color:var(--text-3);font-size:0.85rem">₹${formatPrice(s.originalPrice)}</span>` : '—'}</td>
+      <td>${discount > 0 ? `<span class="badge green" style="font-size:0.75rem">${discount}% off</span>` : '—'}</td>
+      <td>${s.inStock !== false ? '<span class="badge green" style="font-size:0.75rem">In Stock</span>' : '<span class="badge red" style="font-size:0.75rem">Out of Stock</span>'}</td>
+      <td><a href="${escapeHTML(s.url || '#')}" target="_blank" rel="noopener" class="buy-btn" onclick="event.stopPropagation()">Buy →</a></td>
+    </tr>`;
+  }).join('');
+
+  // ── Specification rows ─────────────────────────
+  const specs = p.specs || {};
+  const specRows = Object.entries(specs).map(([key, val]) => `
+    <tr>
+      <td style="color:var(--text-3);font-size:0.82rem;padding:6px 12px;white-space:nowrap">${escapeHTML(key)}</td>
+      <td style="font-size:0.85rem;padding:6px 12px">${escapeHTML(String(val))}</td>
     </tr>`).join('');
 
+  // ── Offer pills ───────────────────────────────
   const offerPills = (p.offers || []).map(o =>
     `<span class="offer-pill">🏷️ ${escapeHTML(o)}</span>`
   ).join('');
 
   return `
   <div class="modal-content">
+    <!-- Header: Image + Name + Best Price -->
     <div class="modal-product-header">
       <img class="modal-product-img"
-           src="${p.image || 'https://via.placeholder.com/200?text=Product'}"
+           src="${escapeHTML(p.image || '')}"
            alt="${escapeHTML(p.name)}"
-           onerror="this.src='https://via.placeholder.com/200?text=Product'" />
-      <div>
+           onerror="this.style.display='none'" />
+      <div style="flex:1">
+        <div style="font-size:0.75rem;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${escapeHTML(p.category || 'Product')}</div>
         <div class="modal-product-name">${escapeHTML(p.name)}</div>
         <div class="modal-best-price">₹${formatPrice(p.bestPrice)}</div>
         <div class="modal-lowest-ever">
-          Lowest Ever Price: <strong>₹${formatPrice(p.lowestEver || p.bestPrice)}</strong>
-          ${p.lowestEverDate ? `· on ${p.lowestEverDate}` : ''}
+          Lowest Ever: <strong>₹${formatPrice(p.lowestEver || p.bestPrice)}</strong>
+          ${p.lowestEverDate ? `<span style="color:var(--text-3)"> · ${escapeHTML(p.lowestEverDate)}</span>` : ''}
         </div>
-        <button class="set-alert-btn" onclick="setAlert('${p.id}', ${p.bestPrice})">
-          🔔 Set Price Alert
-        </button>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <button class="set-alert-btn" onclick="setAlert('${escapeHTML(String(p.id))}', ${p.bestPrice})">
+            🔔 Set Price Alert
+          </button>
+          ${p.prices?.[0]?.url ? `<a href="${escapeHTML(p.prices[0].url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:var(--primary);color:#000;border-radius:10px;font-weight:700;font-size:0.85rem;text-decoration:none">Buy Best Price →</a>` : ''}
+        </div>
       </div>
     </div>
 
-    <h4 style="font-family:var(--font-display);margin-bottom:12px">Compare Prices</h4>
-    <table class="price-table">
-      <thead>
-        <tr>
-          <th>Store</th><th>Price</th><th>MRP</th><th>Discount</th><th>Stock</th><th>Action</th>
-        </tr>
-      </thead>
-      <tbody>${storeRows}</tbody>
-    </table>
+    <!-- Price Comparison Table -->
+    <div style="margin-top:28px">
+      <h4 style="font-family:var(--font-display);margin-bottom:12px;font-size:1rem">
+        🏪 Prices Across ${(p.prices || []).length} Stores
+      </h4>
+      ${p.prices && p.prices.length > 0 ? `
+      <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border)">
+        <table class="price-table" style="width:100%;min-width:500px">
+          <thead>
+            <tr>
+              <th>Store</th><th>Price</th><th>MRP</th><th>Discount</th><th>Stock</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody>${storeRows}</tbody>
+        </table>
+      </div>` : `<div style="color:var(--text-3);padding:20px;text-align:center">No price data available yet. Try refreshing.</div>`}
+    </div>
 
+    <!-- Specifications -->
+    ${specRows ? `
+    <div style="margin-top:28px">
+      <h4 style="font-family:var(--font-display);margin-bottom:12px;font-size:1rem">📋 Specifications</h4>
+      <div style="overflow:hidden;border-radius:12px;border:1px solid var(--border)">
+        <table style="width:100%;border-collapse:collapse">
+          <tbody>${specRows}</tbody>
+        </table>
+      </div>
+    </div>` : `
+    <div style="margin-top:24px;padding:16px;background:var(--surface-2);border-radius:10px;color:var(--text-3);font-size:0.85rem">
+      ⏳ Specifications are being fetched in the background. Reopen this product in a few seconds to see them.
+    </div>`}
+
+    <!-- Offers -->
     ${offerPills ? `
-    <div class="offers-section">
-      <h4>Active Offers & Coupons</h4>
-      ${offerPills}
+    <div class="offers-section" style="margin-top:24px">
+      <h4 style="font-family:var(--font-display);margin-bottom:10px;font-size:1rem">🏷️ Active Offers</h4>
+      <div>${offerPills}</div>
     </div>` : ''}
   </div>`;
 }

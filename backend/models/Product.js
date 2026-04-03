@@ -25,6 +25,8 @@ const productSchema = new mongoose.Schema({
   image:         String,
   description:   String,
   tags:          [String],
+  specs:         { type: mongoose.Schema.Types.Mixed, default: {} }, // e.g. { RAM: '8GB', Storage: '256GB' }
+  offers:        [String],
 
   // All store prices
   prices:        [storePriceSchema],
