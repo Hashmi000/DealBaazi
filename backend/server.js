@@ -18,7 +18,7 @@ const authRoutes    = require('./routes/auth');
 const searchRoutes  = require('./routes/search');
 const productRoutes = require('./routes/Product');
 const alertRoutes   = require('./routes/alerts');
-// const userRoutes    = require('./routes/user'); // File does not exist yet
+const userRoutes    = require('./routes/user');
 
 // require('./config/passport')(passport); // File does not exist yet
 
@@ -74,7 +74,7 @@ app.use('/api/auth',    authRoutes);
 app.use('/api/search',  searchRoutes);
 app.use('/api/product', productRoutes);
 app.use('/api/alerts',  alertRoutes);
-// app.use('/api/user',    userRoutes); // File does not exist yet
+app.use('/api/user',    userRoutes);
 
 /* ── Health Check ──────────────────────────────── */
 app.get('/api/health', (req, res) => res.json({
