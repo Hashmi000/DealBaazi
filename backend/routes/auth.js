@@ -7,7 +7,7 @@ const User     = require('../models/User');
 const router = express.Router();
 
 const signToken = (userId) =>
-  jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+  jwt.sign({ id: userId }, process.env.JWT_SECRET || 'fallback-secret-do-not-use-in-production', {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
 
@@ -32,8 +32,8 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Registration failed. Please try again.' });
+    console.error('Registration Error:', err);
+    res.status(500).json({ message: 'Registration failed: ' + err.message });
   }
 });
 
@@ -58,8 +58,8 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Login failed. Please try again.' });
+    console.error('Login Error:', err);
+    res.status(500).json({ message: 'Login failed: ' + err.message });
   }
 });
 
