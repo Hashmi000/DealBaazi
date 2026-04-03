@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tracked Items — DealBaazi</title>
+  <link rel="stylesheet" href="../public/css/main.css"/>
+  <link rel="stylesheet" href="../public/css/dashboard.css"/>
+  <link rel="stylesheet" href="../public/css/pages.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="dashboard.html" class="nav-logo">⚡ DealBaazi</a>
+      <div class="nav-search">
+        <input type="text" id="nav-search-input" placeholder="Search any product..." onkeydown="if(event.key==='Enter') window.location.href='dashboard.html?q='+this.value"/>
+        <button onclick="window.location.href='dashboard.html?q='+document.getElementById('nav-search-input').value">Search</button>
+      </div>
+      <div class="nav-actions">
+        <a href="wishlist.html" class="nav-link">♡ Wishlist</a>
+        <a href="alerts.html" class="nav-link">🔔 Alerts</a>
+        <div class="nav-avatar" onclick="toggleDropdown()">
+          <span id="user-initial">U</span>
+          <div class="dropdown" id="nav-dropdown">
+            <a href="profile.html">My Profile</a>
+            <a href="alerts.html">Price Alerts</a>
+            <a href="tracked.html">Tracked Items</a>
+            <hr/>
+            <a href="#" onclick="logout()">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <aside class="side-nav">
+      <a href="profile.html"  class="side-nav-item">👤 My Profile</a>
+      <a href="alerts.html"   class="side-nav-item">🔔 Price Alerts</a>
+      <a href="tracked.html"  class="side-nav-item active">📦 Tracked Items</a>
+      <a href="wishlist.html" class="side-nav-item">♡ Wishlist</a>
+    </aside>
+
+    <main class="page-main">
+
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">📦 Tracked Items</h1>
+          <p class="page-subtitle">Products you're watching — see current prices and historical trends.</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <select class="filter-select" id="sort-tracked" onchange="sortTracked(this.value)">
+            <option value="recent">Recently Added</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+            <option value="biggest-drop">Biggest Drop</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Summary Strip -->
+      <div class="summary-strip">
+        <div class="summary-chip">
+          <span id="tracked-total">0</span>
+          <label>Items Tracked</label>
+        </div>
+        <div class="summary-chip green-chip">
+          <span id="tracked-drops">0</span>
+          <label>Price Drops Today</label>
+        </div>
+        <div class="summary-chip">
+          <span id="tracked-avg-drop">₹0</span>
+          <label>Avg. Saving</label>
+        </div>
+      </div>
+
+      <!-- Tracked Grid -->
+      <div id="tracked-grid" class="tracked-grid">
+        <!-- Cards injected by JS -->
+      </div>
+
+      <!-- Skeleton -->
+      <div id="tracked-skeleton" class="tracked-grid">
+        <div class="tracked-skeleton"></div>
+        <div class="tracked-skeleton"></div>
+        <div class="tracked-skeleton"></div>
+        <div class="tracked-skeleton"></div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="tracked-empty" style="display:none">
+        <div class="empty-icon">📭</div>
+        <h3>Nothing tracked yet</h3>
+        <p>When you view a product and click "Track Price", it'll appear here.</p>
+        <button class="btn-primary-sm" onclick="window.location.href='dashboard.html'">Find Products to Track</button>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Price History Modal -->
+  <div class="modal-overlay" id="history-modal" onclick="closeHistoryModal(event)">
+    <div class="modal-box" style="max-width:640px">
+      <button class="modal-close" onclick="closeHistoryModal()">✕</button>
+      <div style="padding:32px" id="history-modal-content">
+        <!-- injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="../public/js/auth.js"></script>
+  <script src="../public/js/tracked.js"></script>
+</body>
+</html>

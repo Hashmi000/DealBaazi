@@ -1,17 +1,27 @@
-const jwt = require('jsonwebtoken');
+/* ===================================================
+   DealBaazi — backend/middleware/auth.js
+   JWT authentication middleware
+   =================================================== */
 
-module.exports = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+const jwt  = require('jsonwebtoken');
+const User = require('../models/User');
 
-  if (!token) {
-    return res.status(401).json({ message: 'Authorization token required.' });
-  }
-
+module.exports = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-do-not-use-in-production');
-    req.user = decoded;
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer '))
+      return res.status(401).json({ message: 'Authentication required. Please sign in.' });
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Attach user id to request
+    req.user = { id: decoded.id };
     next();
+
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid or expired token.' });
+    if (err.name === 'TokenExpiredError')
+      return res.status(401).json({ message: 'Session expired. Please sign in again.' });
+    return res.status(401).json({ message: 'Invalid token. Please sign in again.' });
   }
 };

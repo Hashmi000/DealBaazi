@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Profile — DealBaazi</title>
+  <link rel="stylesheet" href="../public/css/main.css"/>
+  <link rel="stylesheet" href="../public/css/dashboard.css"/>
+  <link rel="stylesheet" href="../public/css/pages.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="dashboard.html" class="nav-logo">⚡ DealBaazi</a>
+      <div class="nav-search">
+        <input type="text" id="nav-search-input" placeholder="Search any product..." onkeydown="if(event.key==='Enter') window.location.href='dashboard.html?q='+this.value"/>
+        <button onclick="window.location.href='dashboard.html?q='+document.getElementById('nav-search-input').value">Search</button>
+      </div>
+      <div class="nav-actions">
+        <a href="wishlist.html" class="nav-link">♡ Wishlist</a>
+        <a href="alerts.html" class="nav-link">🔔 Alerts</a>
+        <div class="nav-avatar" onclick="toggleDropdown()">
+          <span id="user-initial">U</span>
+          <div class="dropdown" id="nav-dropdown">
+            <a href="profile.html">My Profile</a>
+            <a href="alerts.html">Price Alerts</a>
+            <a href="tracked.html">Tracked Items</a>
+            <hr/>
+            <a href="#" onclick="logout()">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+
+    <!-- Sidebar Nav -->
+    <aside class="side-nav">
+      <a href="profile.html"  class="side-nav-item active">👤 My Profile</a>
+      <a href="alerts.html"   class="side-nav-item">🔔 Price Alerts</a>
+      <a href="tracked.html"  class="side-nav-item">📦 Tracked Items</a>
+      <a href="wishlist.html" class="side-nav-item">♡ Wishlist</a>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="page-main">
+
+      <!-- Profile Header Card -->
+      <div class="profile-hero">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profile-avatar-display">U</div>
+          <button class="avatar-change-btn" onclick="document.getElementById('avatar-file').click()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+          </button>
+          <input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="previewAvatar(this)"/>
+        </div>
+        <div class="profile-hero-info">
+          <h1 id="profile-display-name">Loading...</h1>
+          <p id="profile-display-email" class="profile-email"></p>
+          <div class="profile-badges">
+            <span class="badge yellow">⚡ Active Member</span>
+            <span class="badge green" id="verified-badge" style="display:none">✓ Verified</span>
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="pstat"><span id="stat-alerts">0</span><label>Alerts Set</label></div>
+          <div class="pstat"><span id="stat-tracked">0</span><label>Items Tracked</label></div>
+          <div class="pstat"><span id="stat-saved">₹0</span><label>Saved</label></div>
+        </div>
+      </div>
+
+      <!-- Edit Profile Form -->
+      <div class="page-card">
+        <div class="card-header">
+          <h2>Personal Information</h2>
+          <button class="btn-edit" id="edit-toggle-btn" onclick="toggleEdit()">✏️ Edit</button>
+        </div>
+
+        <form id="profile-form" onsubmit="saveProfile(event)">
+          <div class="form-grid">
+            <div class="field-group">
+              <label>First Name</label>
+              <input type="text" id="pf-fname" disabled />
+            </div>
+            <div class="field-group">
+              <label>Last Name</label>
+              <input type="text" id="pf-lname" disabled />
+            </div>
+            <div class="field-group">
+              <label>Email Address</label>
+              <input type="email" id="pf-email" disabled />
+            </div>
+            <div class="field-group">
+              <label>Phone Number</label>
+              <input type="tel" id="pf-phone" placeholder="+91 XXXXX XXXXX" disabled />
+            </div>
+            <div class="field-group field-group--full">
+              <label>City / Location</label>
+              <input type="text" id="pf-city" placeholder="e.g. Mumbai, Maharashtra" disabled />
+            </div>
+          </div>
+          <div class="form-actions" id="form-actions" style="display:none">
+            <button type="submit" class="btn-primary-sm">Save Changes</button>
+            <button type="button" class="btn-ghost" onclick="cancelEdit()">Cancel</button>
+          </div>
+          <div id="profile-msg" class="form-msg" style="margin-top:12px"></div>
+        </form>
+      </div>
+
+      <!-- Change Password -->
+      <div class="page-card">
+        <div class="card-header">
+          <h2>Change Password</h2>
+        </div>
+        <form id="pw-form" onsubmit="changePassword(event)">
+          <div class="form-grid">
+            <div class="field-group">
+              <label>Current Password</label>
+              <input type="password" id="pw-current" placeholder="••••••••" required />
+            </div>
+            <div class="field-group">
+              <label>New Password</label>
+              <input type="password" id="pw-new" placeholder="Min 8 characters" required />
+            </div>
+            <div class="field-group">
+              <label>Confirm New Password</label>
+              <input type="password" id="pw-confirm" placeholder="Repeat new password" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary-sm">Update Password</button>
+          </div>
+          <div id="pw-msg" class="form-msg" style="margin-top:12px"></div>
+        </form>
+      </div>
+
+      <!-- Notification Preferences -->
+      <div class="page-card">
+        <div class="card-header">
+          <h2>Notification Preferences</h2>
+        </div>
+        <div class="pref-list">
+          <div class="pref-item">
+            <div class="pref-info">
+              <strong>Price Drop Alerts</strong>
+              <p>Email me when a tracked item's price drops</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="pref-price" checked onchange="savePref('price', this.checked)"/>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="pref-item">
+            <div class="pref-info">
+              <strong>Weekly Deals Digest</strong>
+              <p>Top deals of the week every Sunday</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="pref-weekly" onchange="savePref('weekly', this.checked)"/>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="pref-item">
+            <div class="pref-info">
+              <strong>Flash Sale Alerts</strong>
+              <p>Be notified of limited-time sale events</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="pref-flash" onchange="savePref('flash', this.checked)"/>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="page-card danger-card">
+        <div class="card-header">
+          <h2>Danger Zone</h2>
+        </div>
+        <p class="danger-text">Deleting your account is permanent. All your alerts and tracked items will be lost.</p>
+        <button class="btn-danger" onclick="confirmDelete()">Delete My Account</button>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="../public/js/auth.js"></script>
+  <script src="../public/js/profile.js"></script>
+</body>
+</html>

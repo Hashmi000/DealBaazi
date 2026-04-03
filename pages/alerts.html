@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Price Alerts — DealBaazi</title>
+  <link rel="stylesheet" href="../public/css/main.css"/>
+  <link rel="stylesheet" href="../public/css/dashboard.css"/>
+  <link rel="stylesheet" href="../public/css/pages.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="dashboard.html" class="nav-logo">⚡ DealBaazi</a>
+      <div class="nav-search">
+        <input type="text" id="nav-search-input" placeholder="Search any product..." onkeydown="if(event.key==='Enter') window.location.href='dashboard.html?q='+this.value"/>
+        <button onclick="window.location.href='dashboard.html?q='+document.getElementById('nav-search-input').value">Search</button>
+      </div>
+      <div class="nav-actions">
+        <a href="wishlist.html" class="nav-link">♡ Wishlist</a>
+        <a href="alerts.html" class="nav-link active-link">🔔 Alerts</a>
+        <div class="nav-avatar" onclick="toggleDropdown()">
+          <span id="user-initial">U</span>
+          <div class="dropdown" id="nav-dropdown">
+            <a href="profile.html">My Profile</a>
+            <a href="alerts.html">Price Alerts</a>
+            <a href="tracked.html">Tracked Items</a>
+            <hr/>
+            <a href="#" onclick="logout()">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <aside class="side-nav">
+      <a href="profile.html"  class="side-nav-item">👤 My Profile</a>
+      <a href="alerts.html"   class="side-nav-item active">🔔 Price Alerts</a>
+      <a href="tracked.html"  class="side-nav-item">📦 Tracked Items</a>
+      <a href="wishlist.html" class="side-nav-item">♡ Wishlist</a>
+    </aside>
+
+    <main class="page-main">
+
+      <!-- Page Title -->
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">🔔 Price Alerts</h1>
+          <p class="page-subtitle">We'll email you the moment a tracked product drops below your target price.</p>
+        </div>
+        <button class="btn-primary-sm" onclick="openAddAlertModal()">+ New Alert</button>
+      </div>
+
+      <!-- Summary Strip -->
+      <div class="summary-strip">
+        <div class="summary-chip">
+          <span id="alert-total-count">0</span>
+          <label>Active Alerts</label>
+        </div>
+        <div class="summary-chip">
+          <span id="alert-triggered-count">0</span>
+          <label>Triggered</label>
+        </div>
+        <div class="summary-chip green-chip">
+          <span id="alert-savings">₹0</span>
+          <label>Total Savings Found</label>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="filterAlerts('all', this)">All</button>
+        <button class="ftab" onclick="filterAlerts('active', this)">Active</button>
+        <button class="ftab" onclick="filterAlerts('triggered', this)">Triggered</button>
+      </div>
+
+      <!-- Alerts List -->
+      <div id="alerts-list" class="alerts-list">
+        <div class="empty-state" id="alerts-empty" style="display:none">
+          <div class="empty-icon">🔕</div>
+          <h3>No alerts yet</h3>
+          <p>Set a price alert on any product and we'll notify you when it drops.</p>
+          <button class="btn-primary-sm" onclick="window.location.href='dashboard.html'">Browse Products</button>
+        </div>
+      </div>
+
+      <!-- Skeleton loader -->
+      <div id="alerts-skeleton" class="alerts-list">
+        <div class="alert-skeleton"></div>
+        <div class="alert-skeleton"></div>
+        <div class="alert-skeleton"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Add Alert Modal -->
+  <div class="modal-overlay" id="add-alert-modal" onclick="closeAddAlertModal(event)">
+    <div class="modal-box" style="max-width:480px">
+      <button class="modal-close" onclick="closeAddAlertModal()">✕</button>
+      <div style="padding:32px">
+        <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:6px">New Price Alert</h2>
+        <p style="color:var(--text-2);font-size:.88rem;margin-bottom:24px">Enter a product URL or name and your target price.</p>
+        <div class="field-group" style="margin-bottom:16px">
+          <label>Product Name or URL</label>
+          <input type="text" id="alert-product-input" placeholder="e.g. iPhone 15 or paste Amazon URL" />
+        </div>
+        <div class="field-group" style="margin-bottom:24px">
+          <label>Alert me when price drops below (₹)</label>
+          <input type="number" id="alert-target-price" placeholder="e.g. 12000" min="1" />
+        </div>
+        <button class="btn-primary" onclick="createManualAlert()">Set Alert 🔔</button>
+        <div id="add-alert-msg" class="form-msg" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="../public/js/auth.js"></script>
+  <script src="../public/js/alerts.js"></script>
+</body>
+</html>
