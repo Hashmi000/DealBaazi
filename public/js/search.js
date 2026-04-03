@@ -3,7 +3,6 @@
    Product search, result rendering, modal detail
    =================================================== */
 
-const API_BASE = '/api';
 let currentResults = [];
 let currentPage = 1;
 let currentQuery = '';
@@ -12,17 +11,25 @@ let currentQuery = '';
 function triggerSearch() {
   const heroInput = document.getElementById('hero-search-input');
   const navInput  = document.getElementById('nav-search-input');
-  const query = (heroInput?.value || navInput?.value || '').trim();
+  const heroVisible = document.getElementById('hero-section')?.style.display !== 'none';
+
+  // If hero is visible, prioritize it. If hidden (already searched), prioritize navbar.
+  let query = '';
+  if (heroVisible) {
+    query = (heroInput?.value || navInput?.value || '').trim();
+  } else {
+    query = (navInput?.value || heroInput?.value || '').trim();
+  }
 
   if (!query) return;
+
+  // Sync both inputs to the selected query for consistency
+  if (heroInput) heroInput.value = query;
+  if (navInput)  navInput.value  = query;
 
   currentQuery = query;
   currentPage  = 1;
   currentResults = [];
-
-  // Sync inputs
-  if (heroInput) heroInput.value = query;
-  if (navInput)  navInput.value  = query;
 
   // Hide hero, show results
   const hero = document.getElementById('hero-section');
@@ -145,6 +152,7 @@ function cardHTML(p, idx) {
       <div class="card-meta">
         <span class="card-offers" style="color:var(--primary); font-weight: 500">${p.prices && p.prices.length > 1 ? `⚖️ Compare ${p.prices.length} Stores` : `✨ Best Price Guaranteed`}</span>
         ${p.lowestEver ? `<span class="card-lowest">⬇ Lowest: ₹${formatPrice(p.lowestEver)}</span>` : ''}
+        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" style="display:block; margin-top:12px; padding:10px; background:var(--primary); color:#fff; border-radius:8px; text-align:center; font-weight:600; text-decoration:none;" onclick="event.stopPropagation()">View on ${escapeHTML(p.store || 'Store')} →</a>` : ''}
       </div>
     </div>
   </div>`;
@@ -308,17 +316,6 @@ function toggleWishlist(id, btn) {
     showToast('❤️ Added to wishlist!', 'success');
   }
   localStorage.setItem('ph_wishlist', JSON.stringify(list));
-}
-
-/* ── Utilities ─────────────────────────────────── */
-function formatPrice(n) {
-  if (!n && n !== 0) return '—';
-  return Number(n).toLocaleString('en-IN');
-}
-function escapeHTML(str) {
-  const d = document.createElement('div');
-  d.textContent = str || '';
-  return d.innerHTML;
 }
 
 /* ── On Page Load: Check URL Params ────────────── */

@@ -2,7 +2,6 @@
    DealBaazi — profile.js
    =================================================== */
 
-const API = '/api';
 let _editMode = false;
 
 document.addEventListener('DOMContentLoaded', async () => {

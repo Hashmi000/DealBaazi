@@ -2,8 +2,6 @@
    DealBaazi — auth.js  (updated: OTP registration)
    =================================================== */
 
-const API_BASE = '/api';
-
 // Temp storage for signup data between steps
 let _signupData = null;
 let _otpTimer   = null;

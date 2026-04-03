@@ -2,7 +2,6 @@
    DealBaazi — tracked.js
    =================================================== */
 
-const API = '/api';
 let _allTracked = [];
 let _sortMode   = 'recent';
 
@@ -376,8 +375,3 @@ async function untrack(productId, btn, e) {
     showToast('Failed to remove. Please try again.', 'error');
   }
 }
-
-/* ── Helpers ────────────────────────────────────── */
-function formatPrice(n) { return n ? Number(n).toLocaleString('en-IN') : '—'; }
-function formatDate(d)   { return d ? new Date(d).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : '—'; }
-function escapeHTML(str) { const d=document.createElement('div');d.textContent=str||'';return d.innerHTML; }

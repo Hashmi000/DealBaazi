@@ -18,24 +18,29 @@ router.get('/', async (req, res) => {
     const query = q.trim();
     const pageNum = Math.max(1, parseInt(page));
 
+    console.log(`[Search] Request received for: "${query}"`);
+    
     // 1. Initial Database Search
     let products = await Product.find({ $text: { $search: query } })
       .limit(PAGE_SIZE)
       .lean();
 
+    console.log(`[Search] DB found ${products.length} cached items for: "${query}"`);
+
     // 2. Trigger LIVE Scrape if needed (No results or stale data > 24 hours)
     const isStale = products.length > 0 && products.some(p => !p.lastScraped || (Date.now() - new Date(p.lastScraped).getTime()) > 24 * 60 * 60 * 1000);
     
     if ((products.length < 1 || isStale) && pageNum === 1) {
-      console.log(`Live scraping for "${query}"...`);
+      console.log(`[Search] Triggering live scraper cascade for "${query}"...`);
       const scrapedData = await scraperService.scrapeQuery(query);
 
       for (const item of scrapedData) {
         const normName = normalizeName(item.name);
         
-        // Find existing product by normalized name similarity (using regex on the original name for now)
+        // Find existing product by name similarity (safe check)
+        const partialName = item.name.substring(0, 30);
         let product = await Product.findOne({ 
-          name: { $regex: new RegExp(item.name.substring(0, 20), 'i') } 
+          name: { $regex: partialName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } 
         });
 
         if (product) {
@@ -96,6 +101,7 @@ router.get('/', async (req, res) => {
         image:         p.image,
         store:         bestEntry?.store || 'Marketplace',
         price:         bestEntry?.price || 0,
+        url:           bestEntry?.url || null,
         prices:        sortedPrices,
         category:      p.category
       };

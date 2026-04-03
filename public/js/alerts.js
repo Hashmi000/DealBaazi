@@ -2,7 +2,6 @@
    DealBaazi — alerts.js
    =================================================== */
 
-const API = '/api';
 let _allAlerts = [];
 let _currentFilter = 'all';
 
@@ -176,7 +175,5 @@ async function createManualAlert() {
 }
 
 /* ── Helpers ────────────────────────────────────── */
-function formatPrice(n) { return n ? Number(n).toLocaleString('en-IN') : '—'; }
 function formatDate(d)   { return d ? new Date(d).toLocaleDateString('en-IN', { day:'numeric',month:'short',year:'numeric' }) : ''; }
-function escapeHTML(str) { const d=document.createElement('div');d.textContent=str||'';return d.innerHTML; }
 function showMsgEl(el, text, type) { el.textContent=text; el.className=`form-msg ${type}`; }

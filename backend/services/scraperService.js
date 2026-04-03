@@ -24,7 +24,7 @@ function getHeaders() {
 async function scrapeAmazon(query) {
   try {
     const url = `https://www.amazon.in/s?k=${encodeURIComponent(query)}`;
-    const { data } = await axios.get(url, { headers: getHeaders(), timeout: 8000 });
+    const { data } = await axios.get(url, { headers: getHeaders(), timeout: 12000 });
     const $ = cheerio.load(data);
     const results = [];
     
@@ -79,7 +79,7 @@ async function scrapeAmazon(query) {
 async function scrapeFlipkart(query) {
   try {
     const url = `https://www.flipkart.com/search?q=${encodeURIComponent(query)}`;
-    const { data } = await axios.get(url, { headers: getHeaders(), timeout: 8000 });
+    const { data } = await axios.get(url, { headers: getHeaders(), timeout: 12000 });
     const $ = cheerio.load(data);
     const results = [];
 
