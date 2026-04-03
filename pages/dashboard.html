@@ -77,10 +77,11 @@
 
     <div class="nav-searchbar">
       <input type="text" id="nav-search-input" placeholder="Search laptops, phones, shoes, TVs…"
-             onkeydown="if(event.key==='Enter') triggerSearch()"/>
+             onkeydown="if(event.key==='Enter') triggerSearch()" autocomplete="off"/>
       <button class="nav-search-btn" onclick="triggerSearch()" aria-label="Search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </button>
+      <div class="search-suggestions-wrap" id="nav-suggestions"></div>
     </div>
 
     <div class="nav-actions">
@@ -138,9 +139,10 @@
   </h1>
   <p class="hero-sub">From laptops to sneakers, gaming consoles to appliances — find the best price across Amazon, Flipkart, Meesho, Myntra, Croma &amp; more.</p>
 
-  <div class="hero-search">
+  <div class="hero-search" style="position:relative">
     <input type="text" id="hero-search-input" placeholder="Search for any product… e.g. MacBook Air M3, Nike Air Max, Samsung TV"
-           onkeydown="if(event.key==='Enter') triggerSearch()"/>
+           onkeydown="if(event.key==='Enter') triggerSearch()" autocomplete="off"/>
+    <div class="search-suggestions-wrap" id="hero-suggestions"></div>
     <button class="hero-search-submit" onclick="triggerSearch()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       Search
@@ -353,8 +355,8 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script src="/public/js/auth.js"></script>
-<script src="/public/js/products-data.js"></script>
-<script src="/public/js/dashboard.js"></script>
+<script src="/public/js/autocomplete.js"></script>
 <script src="/public/js/search.js"></script>
+<script src="/public/js/dashboard.js"></script>
 </body>
 </html>

@@ -6,111 +6,107 @@ const scraperService = require('../services/scraperService');
 const router = express.Router();
 const PAGE_SIZE = 12;
 
-/* GET /api/search?q=iphone&page=1&sortBy=price-low&... */
+/**
+ * GET /api/search/suggestions
+ * Returns fast prefix matches for autocomplete
+ */
+router.get('/suggestions', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) return res.json([]);
+
+    const query = q.trim();
+    // Search by name prefix or brand
+    const suggestions = await Product.find({
+      $or: [
+        { name: { $regex: new RegExp('^' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') } },
+        { brand: { $regex: new RegExp('^' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') } }
+      ]
+    })
+    .limit(8)
+    .select('name image category bestPrice')
+    .lean();
+
+    res.json(suggestions);
+  } catch (err) {
+    res.status(500).json({ message: 'Suggestions failed.' });
+  }
+});
+
+/**
+ * GET /api/search
+ * Main search engine rebuilt from scratch
+ */
 router.get('/', async (req, res) => {
   try {
-    const { q, page = 1, category } = req.query;
+    const { q, page = 1, category, sortBy } = req.query;
     if (!q || q.trim().length < 2) return res.status(400).json({ message: 'Query too short.' });
 
     const query = q.trim();
     const pageNum = Math.max(1, parseInt(page));
     const skip = (pageNum - 1) * PAGE_SIZE;
 
-    console.log(`[Search API] Query: "${query}" | Page: ${pageNum}`);
+    // 1. Build MongoDB Query
+    let dbQuery = { $text: { $search: query } };
     
-    // Fallback search: Try text search first, if fails use regex
-    let products = [];
-    let totalCount = 0;
-
-    try {
-      console.log('[Search API] Attempting $text search...');
-      products = await Product.find({ $text: { $search: query } })
-        .skip(skip)
-        .limit(PAGE_SIZE)
-        .lean();
-      totalCount = await Product.countDocuments({ $text: { $search: query } });
-      console.log(`[Search API] $text found ${products.length} items`);
-    } catch (e) {
-      console.warn('[Search API] $text search failed, falling back to regex:', e.message);
+    // If text search is unavailable or returns nothing, fallback to regex
+    let totalCount = await Product.countDocuments(dbQuery);
+    if (totalCount === 0) {
       const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      products = await Product.find({ name: { $regex: regex } })
-        .skip(skip)
-        .limit(PAGE_SIZE)
-        .lean();
-      totalCount = await Product.countDocuments({ name: { $regex: regex } });
+      dbQuery = { name: { $regex: regex } };
+      totalCount = await Product.countDocuments(dbQuery);
     }
 
-    // 2. Trigger LIVE Scrape logic
-    const isStale = products.length > 0 && products.some(p => !p.lastScraped || (Date.now() - new Date(p.lastScraped).getTime()) > 24 * 60 * 60 * 1000);
-    
-    if (pageNum === 1 && (products.length < 2 || isStale)) {
-      console.log(`[Search API] Low or stale results (${products.length}), triggering scraper...`);
-      try {
-        const scrapedData = await scraperService.scrapeQuery(query);
-        for (const item of scrapedData) {
-          const searchName = item.name.substring(0, 20).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          let existing = await Product.findOne({ name: { $regex: new RegExp(searchName, 'i') } });
+    // 2. Sorting
+    let sortOption = { score: { $meta: "textScore" } };
+    if (sortBy === 'price-low') sortOption = { bestPrice: 1 };
+    if (sortBy === 'price-high') sortOption = { bestPrice: -1 };
+    if (sortBy === 'newest') sortOption = { createdAt: -1 };
 
-          if (existing) {
-            await Product.updateOne({ _id: existing._id }, { 
-              $set: { lastScraped: new Date() },
-              $pull: { prices: { store: item.store } } 
-            });
-            await Product.updateOne({ _id: existing._id }, { 
-              $push: { prices: { store: item.store, price: item.price, url: item.url, lastUpdated: new Date() } }
-            });
-          } else {
-            await Product.create({
-              name: item.name,
-              image: item.image,
-              category: category || 'General',
-              prices: [{ store: item.store, price: item.price, url: item.url, lastUpdated: new Date() }],
-              bestPrice: item.price,
-              bestStore: item.store,
-              lastScraped: new Date()
-            });
-          }
-        }
-        // Refetch after scrape (use regex for refresh to be safe)
-        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        products = await Product.find({ name: { $regex: regex } })
-          .skip(skip)
-          .limit(PAGE_SIZE)
-          .lean();
-        totalCount = await Product.countDocuments({ name: { $regex: regex } });
-      } catch (e) {
-        console.error('[Search API] Scraper secondary error:', e.message);
-      }
-    }
+    // 3. Execution
+    const products = await Product.find(dbQuery)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(PAGE_SIZE)
+      .lean();
 
-    // 3. Final Format Logic
-    const formatted = products.map(p => {
-      const sortedPrices = (p.prices || []).sort((a, b) => a.price - b.price);
-      const best = sortedPrices[0];
-      return {
-        id:            p._id,
-        name:          p.name,
-        image:         p.image,
-        store:         best?.store || p.bestStore || 'Marketplace',
-        price:         best?.price || p.bestPrice || 0,
-        url:           best?.url || null,
-        prices:        sortedPrices,
-        category:      p.category,
-        originalPrice: best?.originalPrice || p.bestPrice || 0
+    // 4. Format for "Scratch" Search Requirements
+    const results = products.map(p => {
+      // Prioritize primary marketplace links
+      const marketplaceLinks = {
+        amazon: p.prices?.find(s => s.store.toLowerCase().includes('amazon'))?.url || `https://www.amazon.in/s?k=${encodeURIComponent(p.name)}`,
+        flipkart: p.prices?.find(s => s.store.toLowerCase().includes('flipkart'))?.url || `https://www.flipkart.com/search?q=${encodeURIComponent(p.name)}`,
+        reliance: p.prices?.find(s => s.store.toLowerCase().includes('reliance'))?.url || `https://www.reliancedigital.in/search?q=${encodeURIComponent(p.name)}`,
+        croma: p.prices?.find(s => s.store.toLowerCase().includes('croma'))?.url || `https://www.croma.com/search?q=${encodeURIComponent(p.name)}`
       };
-    }).filter(p => p.price > 0);
 
-    res.json({ 
-      results: formatted, 
-      totalCount: totalCount, 
+      return {
+        id: p._id,
+        name: p.name,
+        brand: p.brand,
+        image: p.image,
+        description: p.description,
+        category: p.category,
+        bestPrice: p.bestPrice || 0,
+        bestStore: p.bestStore || 'Marketplace',
+        rating: p.rating || '4.5',
+        reviews: p.reviews || 0,
+        marketplaceLinks,
+        specs: p.specs || {}
+      };
+    });
+
+    res.json({
+      results,
+      totalCount,
+      page: pageNum,
       hasMore: totalCount > pageNum * PAGE_SIZE,
-      page: pageNum, 
-      query 
+      query
     });
 
   } catch (err) {
-    console.error('[Search API Critical Error]:', err);
-    res.status(500).json({ message: 'Search failed.' });
+    console.error('[Search API Error]:', err);
+    res.status(500).json({ message: 'Search engine encountered an error.' });
   }
 });
 
