@@ -30,6 +30,15 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Verify connection configuration
+transporter.verify(function (error, success) {
+  if (error) {
+    console.error('❌ Nodemailer configuration error:', error);
+  } else {
+    console.log('✅ Nodemailer is ready to take our messages');
+  }
+});
+
 function generateOtp() {
   // 6-digit cryptographically secure OTP
   return crypto.randomInt(100000, 999999).toString();
@@ -107,15 +116,21 @@ router.post('/send-otp', async (req, res) => {
 
     try {
       await sendOtpEmail(email, otp);
+      res.json({ message: 'Verification code sent. Check your inbox.' });
     } catch (emailErr) {
       console.error('Nodemailer failed to send email. Check your .env credentials.');
       console.error('Error detail:', emailErr.message);
+      
+      // Still show the OTP in console for dev debugging
       console.log(`\n=============================================`);
       console.log(`[DEV MODE FALLBACK] Your OTP for ${email} is: ${otp}`);
       console.log(`=============================================\n`);
-    }
 
-    res.json({ message: 'Verification code sent. Check your inbox.' });
+      res.status(500).json({ 
+        message: 'Failed to send verification email.', 
+        error: emailErr.message 
+      });
+    }
 
   } catch (err) {
     console.error('send-otp error:', err);
