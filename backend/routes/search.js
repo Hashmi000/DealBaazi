@@ -6,9 +6,6 @@ const scraperService = require('../services/scraperService');
 const router = express.Router();
 const PAGE_SIZE = 12;
 
-// Clean name for fuzzy matching
-const normalizeName = (name) => name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40);
-
 /* GET /api/search?q=iphone&page=1&sortBy=price-low&... */
 router.get('/', async (req, res) => {
   try {
@@ -17,100 +14,102 @@ router.get('/', async (req, res) => {
 
     const query = q.trim();
     const pageNum = Math.max(1, parseInt(page));
+    const skip = (pageNum - 1) * PAGE_SIZE;
 
-    console.log(`[Search] Request received for: "${query}"`);
+    console.log(`[Search API] Query: "${query}" | Page: ${pageNum}`);
     
-    // 1. Initial Database Search
-    let products = await Product.find({ $text: { $search: query } })
-      .limit(PAGE_SIZE)
-      .lean();
+    // Fallback search: Try text search first, if fails use regex
+    let products = [];
+    let totalCount = 0;
 
-    console.log(`[Search] DB found ${products.length} cached items for: "${query}"`);
-
-    // 2. Trigger LIVE Scrape if needed (No results or stale data > 24 hours)
-    const isStale = products.length > 0 && products.some(p => !p.lastScraped || (Date.now() - new Date(p.lastScraped).getTime()) > 24 * 60 * 60 * 1000);
-    
-    if ((products.length < 1 || isStale) && pageNum === 1) {
-      console.log(`[Search] Triggering live scraper cascade for "${query}"...`);
-      const scrapedData = await scraperService.scrapeQuery(query);
-
-      for (const item of scrapedData) {
-        const normName = normalizeName(item.name);
-        
-        // Find existing product by name similarity (safe check)
-        const partialName = item.name.substring(0, 30);
-        let product = await Product.findOne({ 
-          name: { $regex: partialName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } 
-        });
-
-        if (product) {
-          // Update existing product: Add or Replace store price
-          await Product.updateOne(
-            { _id: product._id },
-            { 
-              $set: { lastScraped: new Date() },
-              $pull: { prices: { store: item.store } } 
-            }
-          );
-          await Product.updateOne(
-            { _id: product._id },
-            { 
-              $push: { 
-                prices: { 
-                  store: item.store, 
-                  price: item.price, 
-                  url: item.url, 
-                  lastUpdated: new Date() 
-                } 
-              }
-            }
-          );
-        } else {
-          // Create new product
-          await Product.create({
-            name: item.name,
-            image: item.image,
-            category: category || 'General',
-            prices: [{
-              store: item.store,
-              price: item.price,
-              url: item.url,
-              lastUpdated: new Date()
-            }],
-            bestPrice: item.price,
-            bestStore: item.store,
-            lastScraped: new Date()
-          });
-        }
-      }
-
-      // Re-fetch after scraping
+    try {
+      console.log('[Search API] Attempting $text search...');
       products = await Product.find({ $text: { $search: query } })
+        .skip(skip)
         .limit(PAGE_SIZE)
         .lean();
+      totalCount = await Product.countDocuments({ $text: { $search: query } });
+      console.log(`[Search API] $text found ${products.length} items`);
+    } catch (e) {
+      console.warn('[Search API] $text search failed, falling back to regex:', e.message);
+      const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      products = await Product.find({ name: { $regex: regex } })
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .lean();
+      totalCount = await Product.countDocuments({ name: { $regex: regex } });
+    }
+
+    // 2. Trigger LIVE Scrape logic
+    const isStale = products.length > 0 && products.some(p => !p.lastScraped || (Date.now() - new Date(p.lastScraped).getTime()) > 24 * 60 * 60 * 1000);
+    
+    if (pageNum === 1 && (products.length < 2 || isStale)) {
+      console.log(`[Search API] Low or stale results (${products.length}), triggering scraper...`);
+      try {
+        const scrapedData = await scraperService.scrapeQuery(query);
+        for (const item of scrapedData) {
+          const searchName = item.name.substring(0, 20).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          let existing = await Product.findOne({ name: { $regex: new RegExp(searchName, 'i') } });
+
+          if (existing) {
+            await Product.updateOne({ _id: existing._id }, { 
+              $set: { lastScraped: new Date() },
+              $pull: { prices: { store: item.store } } 
+            });
+            await Product.updateOne({ _id: existing._id }, { 
+              $push: { prices: { store: item.store, price: item.price, url: item.url, lastUpdated: new Date() } }
+            });
+          } else {
+            await Product.create({
+              name: item.name,
+              image: item.image,
+              category: category || 'General',
+              prices: [{ store: item.store, price: item.price, url: item.url, lastUpdated: new Date() }],
+              bestPrice: item.price,
+              bestStore: item.store,
+              lastScraped: new Date()
+            });
+          }
+        }
+        // Refetch after scrape (use regex for refresh to be safe)
+        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        products = await Product.find({ name: { $regex: regex } })
+          .skip(skip)
+          .limit(PAGE_SIZE)
+          .lean();
+        totalCount = await Product.countDocuments({ name: { $regex: regex } });
+      } catch (e) {
+        console.error('[Search API] Scraper secondary error:', e.message);
+      }
     }
 
     // 3. Final Format Logic
-    const results = products.map(p => {
+    const formatted = products.map(p => {
       const sortedPrices = (p.prices || []).sort((a, b) => a.price - b.price);
-      const bestEntry = sortedPrices[0];
-
+      const best = sortedPrices[0];
       return {
         id:            p._id,
         name:          p.name,
         image:         p.image,
-        store:         bestEntry?.store || 'Marketplace',
-        price:         bestEntry?.price || 0,
-        url:           bestEntry?.url || null,
+        store:         best?.store || p.bestStore || 'Marketplace',
+        price:         best?.price || p.bestPrice || 0,
+        url:           best?.url || null,
         prices:        sortedPrices,
-        category:      p.category
+        category:      p.category,
+        originalPrice: best?.originalPrice || p.bestPrice || 0
       };
     }).filter(p => p.price > 0);
 
-    res.json({ results, total: results.length, page: pageNum, query });
+    res.json({ 
+      results: formatted, 
+      totalCount: totalCount, 
+      hasMore: totalCount > pageNum * PAGE_SIZE,
+      page: pageNum, 
+      query 
+    });
 
   } catch (err) {
-    console.error('Search error:', err);
+    console.error('[Search API Critical Error]:', err);
     res.status(500).json({ message: 'Search failed.' });
   }
 });

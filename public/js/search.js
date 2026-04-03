@@ -87,7 +87,7 @@ async function fetchResults(query, page = 1) {
 
     if (page === 1) {
       if (grid) grid.innerHTML = '';
-      if (countEl) countEl.textContent = `${data.total || data.results?.length || 0} results`;
+      if (countEl) countEl.textContent = `${data.totalCount || data.results?.length || 0} results`;
     }
 
     renderCards(data.results || [], page);

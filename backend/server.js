@@ -3,7 +3,8 @@
    Main Express server entry point
    =================================================== */
 
-require('dotenv').config();
+const path       = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express    = require('express');
 const cors       = require('cors');
 const helmet     = require('helmet');
@@ -11,7 +12,6 @@ const morgan     = require('morgan');
 const rateLimit  = require('express-rate-limit');
 const session    = require('express-session');
 const passport   = require('passport');
-const path       = require('path');
 const mongoose   = require('mongoose');
 
 const authRoutes    = require('./routes/auth');
