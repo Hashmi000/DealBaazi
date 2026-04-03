@@ -28,7 +28,7 @@ const PORT = process.env.PORT || 5000;
 /* ── Database ──────────────────────────────────── */
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => { console.error('❌ MongoDB error:', err); process.exit(1); });
+  .catch(err => { console.error('❌ MongoDB error:', err); });
 
 /* ── Security & Middleware ─────────────────────── */
 app.use(helmet({
