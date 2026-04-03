@@ -96,24 +96,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-/* ── Vercel Cron: Price Alert Checker ──────────── */
-// Hit by Vercel Cron (see vercel.json) every hour
-app.get('/api/cron/check-alerts', async (req, res) => {
-  if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
-  }
-
-  console.log('⏰ Running price alert checker via Vercel...');
-  try {
-    const { checkPriceAlerts } = require('./services/alertService');
-    await checkPriceAlerts();
-    return res.status(200).json({ success: true, message: 'Alerts checked successfully' });
-  } catch (err) {
-    console.error('Alert cron error:', err);
-    return res.status(500).json({ success: false, message: 'Cron failed' });
-  }
-});
-
 /* ── Start Server ──────────────────────────────── */
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
