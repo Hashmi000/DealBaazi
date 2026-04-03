@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DealBaazi — Search Products</title>
+  <link rel="stylesheet" href="../public/css/main.css"/>
+  <link rel="stylesheet" href="../public/css/dashboard.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="dashboard.html" class="nav-logo">⚡ DealBaazi</a>
+      <div class="nav-search">
+        <input type="text" id="nav-search-input" placeholder="Search any product..." onkeydown="if(event.key==='Enter') triggerSearch()" />
+        <button onclick="triggerSearch()">Search</button>
+      </div>
+      <div class="nav-actions">
+        <a href="wishlist.html" class="nav-link" title="Wishlist">♡ Wishlist</a>
+        <a href="alerts.html" class="nav-link" title="Price Alerts">🔔 Alerts</a>
+        <div class="nav-avatar" onclick="toggleDropdown()">
+          <span id="user-initial">U</span>
+          <div class="dropdown" id="nav-dropdown">
+            <a href="profile.html">My Profile</a>
+            <a href="alerts.html">Price Alerts</a>
+            <a href="orders.html">Tracked Items</a>
+            <hr/>
+            <a href="#" onclick="logout()">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- AD BANNER TOP -->
+  <div class="ad-banner ad-top" id="ad-top">
+    <span class="ad-label">Ad</span>
+    <div class="ad-content">
+      <!-- Google AdSense slot — replace with your publisher ID -->
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="1234567890"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <!-- Placeholder shown before AdSense loads -->
+      <div class="ad-placeholder">
+        <p>🎯 Advertisement — Your ad could be here</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO SEARCH (shown on fresh load) -->
+  <section class="hero-search" id="hero-section">
+    <div class="hero-inner">
+      <h1>Compare prices.<br/>Save <em>more</em>.</h1>
+      <p>Search across Amazon, Flipkart, Meesho, Myntra, Croma & more instantly.</p>
+      <div class="big-search-bar">
+        <input type="text" id="hero-search-input" placeholder="e.g. iPhone 15, Nike Air Max, Samsung TV..." />
+        <button class="btn-search" onclick="triggerSearch()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Search
+        </button>
+      </div>
+      <div class="trending-tags">
+        <span>Trending:</span>
+        <a onclick="quickSearch('iPhone 15')">iPhone 15</a>
+        <a onclick="quickSearch('Sony WH-1000XM5')">Sony XM5</a>
+        <a onclick="quickSearch('Nike Air Max')">Nike Air Max</a>
+        <a onclick="quickSearch('Samsung 4K TV')">Samsung TV</a>
+        <a onclick="quickSearch('boAt earbuds')">boAt Earbuds</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS SECTION (hidden initially) -->
+  <section class="results-section" id="results-section" style="display:none">
+    <div class="results-inner">
+
+      <!-- Filters Sidebar -->
+      <aside class="filters-sidebar">
+        <h3>Filter Results</h3>
+        <div class="filter-group">
+          <label>Category</label>
+          <select id="filter-category" onchange="applyFilters()">
+            <option value="">All Categories</option>
+            <option>Electronics</option>
+            <option>Fashion</option>
+            <option>Home & Kitchen</option>
+            <option>Sports</option>
+            <option>Books</option>
+            <option>Beauty</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Marketplaces</label>
+          <div class="checkbox-list" id="marketplace-filters">
+            <label><input type="checkbox" value="amazon" checked onchange="applyFilters()"/> Amazon</label>
+            <label><input type="checkbox" value="flipkart" checked onchange="applyFilters()"/> Flipkart</label>
+            <label><input type="checkbox" value="meesho" checked onchange="applyFilters()"/> Meesho</label>
+            <label><input type="checkbox" value="myntra" checked onchange="applyFilters()"/> Myntra</label>
+            <label><input type="checkbox" value="croma" checked onchange="applyFilters()"/> Croma</label>
+            <label><input type="checkbox" value="reliance" checked onchange="applyFilters()"/> Reliance Digital</label>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Price Range</label>
+          <div class="price-inputs">
+            <input type="number" id="price-min" placeholder="Min ₹" onchange="applyFilters()"/>
+            <span>–</span>
+            <input type="number" id="price-max" placeholder="Max ₹" onchange="applyFilters()"/>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Sort By</label>
+          <select id="sort-by" onchange="applyFilters()">
+            <option value="relevance">Relevance</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+            <option value="discount">Biggest Discount</option>
+            <option value="rating">Top Rated</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label><input type="checkbox" id="filter-offers" onchange="applyFilters()"/> With Active Offers Only</label>
+          <label><input type="checkbox" id="filter-instock" onchange="applyFilters()"/> In Stock Only</label>
+        </div>
+
+        <!-- Sidebar Ad -->
+        <div class="ad-sidebar">
+          <span class="ad-label">Ad</span>
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="9876543210"
+               data-ad-format="auto"></ins>
+          <div class="ad-placeholder small">
+            <p>Ad Space</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Results -->
+      <main class="results-main">
+        <div class="results-header">
+          <span id="results-count"></span>
+          <span id="query-label"></span>
+        </div>
+        <div class="results-grid" id="results-grid">
+          <!-- Cards injected by JS -->
+        </div>
+
+        <!-- Mid-results Ad -->
+        <div class="ad-banner ad-mid" id="ad-mid">
+          <span class="ad-label">Ad</span>
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="5555555555"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <div class="ad-placeholder">
+            <p>Advertisement</p>
+          </div>
+        </div>
+
+        <div class="results-grid" id="results-grid-2"></div>
+
+        <div class="load-more-wrap">
+          <button class="btn-load-more" id="load-more-btn" onclick="loadMore()" style="display:none">Load More Results</button>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- PRODUCT DETAIL MODAL -->
+  <div class="modal-overlay" id="product-modal" onclick="closeModal(event)">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeProductModal()">✕</button>
+      <div class="modal-content" id="modal-content">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">⚡ DealBaazi</div>
+      <div class="footer-links">
+        <a href="about.html">About</a>
+        <a href="pages/terms.html">Terms</a>
+        <a href="pages/privacy.html">Privacy</a>
+        <a href="contact.html">Contact</a>
+        <a href="pages/advertise.html">Advertise</a>
+      </div>
+      <div class="footer-note">© 2025 DealBaazi. All prices are indicative. We may earn affiliate commissions.</div>
+    </div>
+  </footer>
+
+  <script src="../public/js/auth.js"></script>
+  <script src="../public/js/search.js"></script>
+  <script src="../public/js/dashboard.js"></script>
+  <!-- Google AdSense — uncomment after approval -->
+  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+</body>
+</html>
