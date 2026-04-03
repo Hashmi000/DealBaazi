@@ -3,11 +3,249 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DealBaazi — Search Products</title>
+  <title>DealBaazi — Compare Prices & Find Best Deals</title>
+  <meta name="description" content="Compare prices across Amazon, Flipkart, Meesho, Myntra, Croma & more. Find the best deals on phones, electronics, fashion and everything else."/>
   <link rel="stylesheet" href="../public/css/main.css"/>
   <link rel="stylesheet" href="../public/css/dashboard.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── Category Strip ──────────────────────────── */
+    .category-strip {
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 57px;
+      z-index: 90;
+    }
+    .category-strip-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .category-strip-inner::-webkit-scrollbar { display: none; }
+    .cat-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-2);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .cat-btn:hover { color: var(--text); border-bottom-color: var(--border-hi); }
+    .cat-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+    .cat-btn .cat-icon { font-size: 1rem; }
+
+    /* ── Homepage Content ─────────────────────────── */
+    .home-content { max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
+
+    /* ── Hero – compact ─────────────────────────── */
+    .hero-search { padding: 52px 24px 32px; text-align: center; }
+    .hero-inner { max-width: 720px; margin: 0 auto; }
+    .hero-search h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4.5vw, 3.4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+    .hero-search h1 em { font-style: normal; color: var(--accent); }
+    .hero-search p { color: var(--text-2); font-size: 1rem; margin-bottom: 28px; }
+
+    /* ── Store badges strip ──────────────────────── */
+    .store-badges {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 0;
+      margin-top: 20px;
+    }
+    .store-badge {
+      padding: 5px 14px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 0.78rem;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+
+    /* ── Section Headings ────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      margin-top: 40px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .section-see-all {
+      font-size: 0.8rem;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .section-see-all:hover { text-decoration: underline; }
+
+    /* ── Category Cards Grid ────────────────────── */
+    .category-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 14px;
+    }
+    .category-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .category-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(247,201,72,0.08);
+    }
+    .category-card .cat-emoji { font-size: 2rem; line-height: 1; }
+    .category-card .cat-label { font-size: 0.8rem; font-weight: 600; color: var(--text-2); }
+    .category-card .cat-count { font-size: 0.7rem; color: var(--text-3); }
+
+    /* ── Deal Cards Horizontal Scroll ──────────── */
+    .deal-scroll {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── Deal Card ──────────────────────────────── */
+    .deal-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      animation: cardIn 0.4s ease both;
+    }
+    .deal-card:hover {
+      border-color: var(--border-hi);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+    }
+    .deal-card-img {
+      width: 100%;
+      height: 160px;
+      object-fit: contain;
+      background: var(--bg-3);
+      padding: 12px;
+    }
+    .deal-card-img-placeholder {
+      width: 100%;
+      height: 160px;
+      background: var(--bg-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+    .deal-card-body { padding: 14px; }
+    .deal-card-store {
+      font-size: 0.68rem;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .deal-card-name {
+      font-size: 0.85rem;
+      color: var(--text);
+      line-height: 1.4;
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-weight: 500;
+    }
+    .deal-card-price {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .deal-card-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: var(--accent);
+      color: #0a0b0f;
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: 99px;
+    }
+
+    /* ── Market Banner ──────────────────────────── */
+    .market-banner {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 40px;
+    }
+    .market-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .market-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .market-card .market-icon { font-size: 2rem; }
+    .market-card .market-name { font-weight: 700; font-size: 0.95rem; }
+    .market-card .market-desc { font-size: 0.75rem; color: var(--text-3); }
+
+    /* ── Featured skeleton loader ───────────────── */
+    .deal-skeleton {
+      background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: var(--radius-lg);
+      height: 280px;
+    }
+  </style>
 </head>
 <body class="dashboard-page">
 
@@ -16,7 +254,7 @@
     <div class="nav-inner">
       <a href="dashboard.html" class="nav-logo">⚡ DealBaazi</a>
       <div class="nav-search">
-        <input type="text" id="nav-search-input" placeholder="Search any product..." onkeydown="if(event.key==='Enter') triggerSearch()" />
+        <input type="text" id="nav-search-input" placeholder="Search phones, clothes, electronics..." onkeydown="if(event.key==='Enter') triggerSearch()" />
         <button onclick="triggerSearch()">Search</button>
       </div>
       <div class="nav-actions">
@@ -27,7 +265,7 @@
           <div class="dropdown" id="nav-dropdown">
             <a href="profile.html">My Profile</a>
             <a href="alerts.html">Price Alerts</a>
-            <a href="orders.html">Tracked Items</a>
+            <a href="tracked.html">Tracked Items</a>
             <hr/>
             <a href="#" onclick="logout()">Sign Out</a>
           </div>
@@ -36,46 +274,214 @@
     </div>
   </nav>
 
-  <!-- AD BANNER TOP -->
-  <div class="ad-banner ad-top" id="ad-top">
-    <span class="ad-label">Ad</span>
-    <div class="ad-content">
-      <!-- Google AdSense slot — replace with your publisher ID -->
-      <ins class="adsbygoogle"
-           style="display:block"
-           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-           data-ad-slot="1234567890"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
-      <!-- Placeholder shown before AdSense loads -->
-      <div class="ad-placeholder">
-        <p>🎯 Advertisement — Your ad could be here</p>
-      </div>
+  <!-- CATEGORY STRIP -->
+  <div class="category-strip">
+    <div class="category-strip-inner">
+      <button class="cat-btn active" onclick="categorySearch('', this)"><span class="cat-icon">🏠</span> All</button>
+      <button class="cat-btn" onclick="categorySearch('smartphone', this)"><span class="cat-icon">📱</span> Phones</button>
+      <button class="cat-btn" onclick="categorySearch('laptop', this)"><span class="cat-icon">💻</span> Laptops</button>
+      <button class="cat-btn" onclick="categorySearch('television', this)"><span class="cat-icon">📺</span> TVs</button>
+      <button class="cat-btn" onclick="categorySearch('headphones earbuds', this)"><span class="cat-icon">🎧</span> Audio</button>
+      <button class="cat-btn" onclick="categorySearch('gaming console', this)"><span class="cat-icon">🎮</span> Gaming</button>
+      <button class="cat-btn" onclick="categorySearch('men clothing', this)"><span class="cat-icon">👕</span> Men's Fashion</button>
+      <button class="cat-btn" onclick="categorySearch('women clothing', this)"><span class="cat-icon">👗</span> Women's Fashion</button>
+      <button class="cat-btn" onclick="categorySearch('running shoes', this)"><span class="cat-icon">👟</span> Shoes</button>
+      <button class="cat-btn" onclick="categorySearch('home furniture desk', this)"><span class="cat-icon">🏡</span> Home & Furniture</button>
+      <button class="cat-btn" onclick="categorySearch('kitchen appliances', this)"><span class="cat-icon">🍳</span> Kitchen</button>
+      <button class="cat-btn" onclick="categorySearch('sports fitness', this)"><span class="cat-icon">🏋️</span> Sports</button>
+      <button class="cat-btn" onclick="categorySearch('beauty skincare', this)"><span class="cat-icon">💄</span> Beauty</button>
+      <button class="cat-btn" onclick="categorySearch('toys kids', this)"><span class="cat-icon">🧸</span> Toys</button>
+      <button class="cat-btn" onclick="categorySearch('books', this)"><span class="cat-icon">📚</span> Books</button>
+      <button class="cat-btn" onclick="categorySearch('camera', this)"><span class="cat-icon">📷</span> Cameras</button>
     </div>
   </div>
 
   <!-- HERO SEARCH (shown on fresh load) -->
   <section class="hero-search" id="hero-section">
     <div class="hero-inner">
-      <h1>Compare prices.<br/>Save <em>more</em>.</h1>
-      <p>Search across Amazon, Flipkart, Meesho, Myntra, Croma & more instantly.</p>
+      <h1>Find every deal.<br/>Compare <em>all</em> stores.</h1>
+      <p>Search across 6 marketplaces instantly and always pay the best price.</p>
       <div class="big-search-bar">
-        <input type="text" id="hero-search-input" placeholder="e.g. iPhone 15, Nike Air Max, Samsung TV..." />
+        <input type="text" id="hero-search-input" placeholder="e.g. iPhone 15, Nike Air Max, Samsung TV, gaming chair..." />
         <button class="btn-search" onclick="triggerSearch()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           Search
         </button>
       </div>
       <div class="trending-tags">
-        <span>Trending:</span>
+        <span>🔥 Trending:</span>
         <a onclick="quickSearch('iPhone 15')">iPhone 15</a>
         <a onclick="quickSearch('Sony WH-1000XM5')">Sony XM5</a>
         <a onclick="quickSearch('Nike Air Max')">Nike Air Max</a>
         <a onclick="quickSearch('Samsung 4K TV')">Samsung TV</a>
         <a onclick="quickSearch('boAt earbuds')">boAt Earbuds</a>
+        <a onclick="quickSearch('RTX 4070')">RTX 4070</a>
+        <a onclick="quickSearch('Apple Watch')">Apple Watch</a>
+      </div>
+      <div class="store-badges">
+        <span class="store-badge">🟠 Amazon</span>
+        <span class="store-badge">🔵 Flipkart</span>
+        <span class="store-badge">🩷 Meesho</span>
+        <span class="store-badge">🟣 Myntra</span>
+        <span class="store-badge">🟢 Croma</span>
+        <span class="store-badge">🔴 Reliance Digital</span>
       </div>
     </div>
   </section>
+
+  <!-- HOMEPAGE CONTENT (categories, featured products) -->
+  <div class="home-content" id="home-content">
+
+    <!-- Shop by Category -->
+    <div class="section-header">
+      <span class="section-title">🛍️ Shop by Category</span>
+    </div>
+    <div class="category-cards">
+      <div class="category-card" onclick="categorySearch('smartphone')">
+        <div class="cat-emoji">📱</div>
+        <div class="cat-label">Phones</div>
+        <div class="cat-count">iPhone, Samsung, OnePlus</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('laptop')">
+        <div class="cat-emoji">💻</div>
+        <div class="cat-label">Laptops</div>
+        <div class="cat-count">MacBook, Dell, HP, Lenovo</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('television 4k')">
+        <div class="cat-emoji">📺</div>
+        <div class="cat-label">TVs</div>
+        <div class="cat-count">4K, OLED, Smart TV</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('headphones earbuds')">
+        <div class="cat-emoji">🎧</div>
+        <div class="cat-label">Audio</div>
+        <div class="cat-count">Headphones, Earbuds, Speakers</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('gaming console ps5 xbox')">
+        <div class="cat-emoji">🎮</div>
+        <div class="cat-label">Gaming</div>
+        <div class="cat-count">PS5, Xbox, Nintendo</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('computer components gpu cpu')">
+        <div class="cat-emoji">🖥️</div>
+        <div class="cat-label">PC Parts</div>
+        <div class="cat-count">GPU, CPU, RAM, SSD</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('men clothing fashion')">
+        <div class="cat-emoji">👕</div>
+        <div class="cat-label">Men's Fashion</div>
+        <div class="cat-count">T-shirts, Jeans, Formal</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('women clothing saree dress')">
+        <div class="cat-emoji">👗</div>
+        <div class="cat-label">Women's Fashion</div>
+        <div class="cat-count">Dresses, Sarees, Kurtis</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('running shoes sneakers')">
+        <div class="cat-emoji">👟</div>
+        <div class="cat-label">Footwear</div>
+        <div class="cat-count">Nike, Adidas, Puma</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('home furniture sofa desk')">
+        <div class="cat-emoji">🛋️</div>
+        <div class="cat-label">Home & Décor</div>
+        <div class="cat-count">Furniture, Decor, Bedding</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('kitchen mixer grinder appliance')">
+        <div class="cat-emoji">🍳</div>
+        <div class="cat-label">Kitchen</div>
+        <div class="cat-count">Appliances, Cookware</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('beauty skincare makeup')">
+        <div class="cat-emoji">💄</div>
+        <div class="cat-label">Beauty</div>
+        <div class="cat-count">Skincare, Makeup, Hair</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('fitness gym equipment')">
+        <div class="cat-emoji">🏋️</div>
+        <div class="cat-label">Sports & Fitness</div>
+        <div class="cat-count">Gym, Yoga, Cricket</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('toys kids lego')">
+        <div class="cat-emoji">🧸</div>
+        <div class="cat-label">Toys & Kids</div>
+        <div class="cat-count">Lego, Action Figures</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('camera dslr mirrorless')">
+        <div class="cat-emoji">📷</div>
+        <div class="cat-label">Cameras</div>
+        <div class="cat-count">DSLR, GoPro, Lens</div>
+      </div>
+      <div class="category-card" onclick="categorySearch('books novel amazon')">
+        <div class="cat-emoji">📚</div>
+        <div class="cat-label">Books</div>
+        <div class="cat-count">Fiction, Self Help, Comics</div>
+      </div>
+    </div>
+
+    <!-- Hot Deals Today -->
+    <div class="section-header">
+      <span class="section-title">🔥 Hot Deals Today</span>
+      <span class="section-see-all" onclick="quickSearch('best deals today')">See all →</span>
+    </div>
+    <div class="deal-scroll" id="hot-deals-grid">
+      <!-- Populated by JS -->
+      <div class="deal-skeleton"></div>
+      <div class="deal-skeleton"></div>
+      <div class="deal-skeleton"></div>
+      <div class="deal-skeleton"></div>
+    </div>
+
+    <!-- Trending Now -->
+    <div class="section-header">
+      <span class="section-title">📈 Trending Now</span>
+      <span class="section-see-all" onclick="quickSearch('trending products')">See all →</span>
+    </div>
+    <div class="deal-scroll" id="trending-grid">
+      <div class="deal-skeleton"></div>
+      <div class="deal-skeleton"></div>
+      <div class="deal-skeleton"></div>
+      <div class="deal-skeleton"></div>
+    </div>
+
+    <!-- Shop by Marketplace -->
+    <div class="section-header">
+      <span class="section-title">🏪 Shop by Marketplace</span>
+    </div>
+    <div class="market-banner">
+      <div class="market-card" style="background: linear-gradient(135deg, #1a1200, #0a0b0f); border-color: #ff9900" onclick="quickSearch('amazon top deals')">
+        <div class="market-icon">🟠</div>
+        <div class="market-name" style="color:#ff9900">Amazon</div>
+        <div class="market-desc">Best prices on electronics & more</div>
+      </div>
+      <div class="market-card" style="background: linear-gradient(135deg, #001a3a, #0a0b0f); border-color: #2874f0" onclick="quickSearch('flipkart top deals')">
+        <div class="market-icon">🔵</div>
+        <div class="market-name" style="color:#2874f0">Flipkart</div>
+        <div class="market-desc">Mobiles, fashion & grocery</div>
+      </div>
+      <div class="market-card" style="background: linear-gradient(135deg, #1a001a, #0a0b0f); border-color: #f43397" onclick="quickSearch('meesho fashion deals')">
+        <div class="market-icon">🩷</div>
+        <div class="market-name" style="color:#f43397">Meesho</div>
+        <div class="market-desc">Budget fashion & lifestyle</div>
+      </div>
+      <div class="market-card" style="background: linear-gradient(135deg, #0d0020, #0a0b0f); border-color: #ff3e6c" onclick="quickSearch('myntra clothing fashion')">
+        <div class="market-icon">🟣</div>
+        <div class="market-name" style="color:#ff3e6c">Myntra</div>
+        <div class="market-desc">Top fashion brands & trends</div>
+      </div>
+      <div class="market-card" style="background: linear-gradient(135deg, #001a10, #0a0b0f); border-color: #3dba4e" onclick="quickSearch('croma electronics')">
+        <div class="market-icon">🟢</div>
+        <div class="market-name" style="color:#3dba4e">Croma</div>
+        <div class="market-desc">Electronics & gadgets</div>
+      </div>
+      <div class="market-card" style="background: linear-gradient(135deg, #1a0000, #0a0b0f); border-color: #e42027" onclick="quickSearch('reliance digital electronics')">
+        <div class="market-icon">🔴</div>
+        <div class="market-name" style="color:#e42027">Reliance Digital</div>
+        <div class="market-desc">Consumer electronics</div>
+      </div>
+    </div>
+
+  </div><!-- /home-content -->
 
   <!-- RESULTS SECTION (hidden initially) -->
   <section class="results-section" id="results-section" style="display:none">
@@ -89,30 +495,33 @@
           <select id="filter-category" onchange="applyFilters()">
             <option value="">All Categories</option>
             <option>Electronics</option>
+            <option>Phones</option>
+            <option>Laptops</option>
             <option>Fashion</option>
             <option>Home & Kitchen</option>
             <option>Sports</option>
-            <option>Books</option>
             <option>Beauty</option>
+            <option>Toys</option>
+            <option>Books</option>
           </select>
         </div>
         <div class="filter-group">
           <label>Marketplaces</label>
           <div class="checkbox-list" id="marketplace-filters">
-            <label><input type="checkbox" value="amazon" checked onchange="applyFilters()"/> Amazon</label>
-            <label><input type="checkbox" value="flipkart" checked onchange="applyFilters()"/> Flipkart</label>
-            <label><input type="checkbox" value="meesho" checked onchange="applyFilters()"/> Meesho</label>
-            <label><input type="checkbox" value="myntra" checked onchange="applyFilters()"/> Myntra</label>
-            <label><input type="checkbox" value="croma" checked onchange="applyFilters()"/> Croma</label>
-            <label><input type="checkbox" value="reliance" checked onchange="applyFilters()"/> Reliance Digital</label>
+            <label><input type="checkbox" value="amazon" checked onchange="applyFilters()"/> 🟠 Amazon</label>
+            <label><input type="checkbox" value="flipkart" checked onchange="applyFilters()"/> 🔵 Flipkart</label>
+            <label><input type="checkbox" value="meesho" checked onchange="applyFilters()"/> 🩷 Meesho</label>
+            <label><input type="checkbox" value="myntra" checked onchange="applyFilters()"/> 🟣 Myntra</label>
+            <label><input type="checkbox" value="croma" checked onchange="applyFilters()"/> 🟢 Croma</label>
+            <label><input type="checkbox" value="reliance" checked onchange="applyFilters()"/> 🔴 Reliance Digital</label>
           </div>
         </div>
         <div class="filter-group">
-          <label>Price Range</label>
+          <label>Price Range (₹)</label>
           <div class="price-inputs">
-            <input type="number" id="price-min" placeholder="Min ₹" onchange="applyFilters()"/>
+            <input type="number" id="price-min" placeholder="Min" onchange="applyFilters()"/>
             <span>–</span>
-            <input type="number" id="price-max" placeholder="Max ₹" onchange="applyFilters()"/>
+            <input type="number" id="price-max" placeholder="Max" onchange="applyFilters()"/>
           </div>
         </div>
         <div class="filter-group">
@@ -122,25 +531,10 @@
             <option value="price-low">Price: Low to High</option>
             <option value="price-high">Price: High to Low</option>
             <option value="discount">Biggest Discount</option>
-            <option value="rating">Top Rated</option>
           </select>
         </div>
         <div class="filter-group">
-          <label><input type="checkbox" id="filter-offers" onchange="applyFilters()"/> With Active Offers Only</label>
           <label><input type="checkbox" id="filter-instock" onchange="applyFilters()"/> In Stock Only</label>
-        </div>
-
-        <!-- Sidebar Ad -->
-        <div class="ad-sidebar">
-          <span class="ad-label">Ad</span>
-          <ins class="adsbygoogle"
-               style="display:block"
-               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-               data-ad-slot="9876543210"
-               data-ad-format="auto"></ins>
-          <div class="ad-placeholder small">
-            <p>Ad Space</p>
-          </div>
         </div>
       </aside>
 
@@ -153,23 +547,7 @@
         <div class="results-grid" id="results-grid">
           <!-- Cards injected by JS -->
         </div>
-
-        <!-- Mid-results Ad -->
-        <div class="ad-banner ad-mid" id="ad-mid">
-          <span class="ad-label">Ad</span>
-          <ins class="adsbygoogle"
-               style="display:block"
-               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-               data-ad-slot="5555555555"
-               data-ad-format="auto"
-               data-full-width-responsive="true"></ins>
-          <div class="ad-placeholder">
-            <p>Advertisement</p>
-          </div>
-        </div>
-
         <div class="results-grid" id="results-grid-2"></div>
-
         <div class="load-more-wrap">
           <button class="btn-load-more" id="load-more-btn" onclick="loadMore()" style="display:none">Load More Results</button>
         </div>
@@ -195,12 +573,11 @@
       <div class="footer-brand">⚡ DealBaazi</div>
       <div class="footer-links">
         <a href="about.html">About</a>
-        <a href="pages/terms.html">Terms</a>
-        <a href="pages/privacy.html">Privacy</a>
-        <a href="contact.html">Contact</a>
-        <a href="pages/advertise.html">Advertise</a>
+        <a href="alerts.html">Price Alerts</a>
+        <a href="tracked.html">Tracked</a>
+        <a href="profile.html">Profile</a>
       </div>
-      <div class="footer-note">© 2025 DealBaazi. All prices are indicative. We may earn affiliate commissions.</div>
+      <div class="footer-note">© 2025 DealBaazi. Prices may vary. We may earn affiliate commissions.</div>
     </div>
   </footer>
 
@@ -208,7 +585,74 @@
   <script src="../public/js/auth.js"></script>
   <script src="../public/js/search.js"></script>
   <script src="../public/js/dashboard.js"></script>
-  <!-- Google AdSense — uncomment after approval -->
-  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+  <script>
+    // ── Category strip button helper ─────────────
+    function categorySearch(query, btn) {
+      // Update active state on strip
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      if (!query) {
+        // Show homepage
+        document.getElementById('hero-section').style.display = '';
+        document.getElementById('home-content').style.display = '';
+        document.getElementById('results-section').style.display = 'none';
+        return;
+      }
+      // Trigger search via the existing search.js flow
+      const heroInput = document.getElementById('hero-search-input');
+      const navInput  = document.getElementById('nav-search-input');
+      if (heroInput) heroInput.value = query;
+      if (navInput)  navInput.value  = query;
+      triggerSearch();
+    }
+
+    // ── Override triggerSearch to also hide home content ─
+    const _origTrigger = triggerSearch;
+    triggerSearch = function() {
+      document.getElementById('home-content').style.display = 'none';
+      _origTrigger();
+    };
+
+    // ── Load featured product sections ────────────
+    async function loadFeaturedSection(query, gridId, maxItems = 4) {
+      const grid = document.getElementById(gridId);
+      if (!grid) return;
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=1`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const items = (data.results || []).slice(0, maxItems);
+        if (items.length === 0) {
+          grid.innerHTML = `<div style="color:var(--text-3);font-size:0.85rem;padding:20px">No deals found right now. Try searching manually.</div>`;
+          return;
+        }
+        grid.innerHTML = items.map(p => `
+          <div class="deal-card" onclick="openProductModal('${p.id}')">
+            ${p.image
+              ? `<img class="deal-card-img" src="${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}" onerror="this.style.display='none'">`
+              : `<div class="deal-card-img-placeholder">📦</div>`}
+            <div class="deal-card-badge">DEAL</div>
+            <div class="deal-card-body">
+              <div class="deal-card-store">${escapeHTML(p.store || 'Marketplace')}</div>
+              <div class="deal-card-name">${escapeHTML(p.name)}</div>
+              <div class="deal-card-price">₹${formatPrice(p.price)}</div>
+            </div>
+          </div>`).join('');
+      } catch {
+        grid.innerHTML = `<div style="color:var(--text-3);font-size:0.85rem;padding:20px">Could not load deals. Check your connection.</div>`;
+      }
+    }
+
+    // ── Boot: load homepage deals ─────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      // Only load featured sections if URL has no query
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('q')) {
+        loadFeaturedSection('iphone samsung smartphone', 'hot-deals-grid', 4);
+        loadFeaturedSection('boAt earbuds headphones sony', 'trending-grid', 4);
+      }
+    });
+  </script>
 </body>
 </html>
