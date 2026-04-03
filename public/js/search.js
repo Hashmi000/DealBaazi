@@ -117,7 +117,23 @@ function renderCards(products, page) {
 
   if (firstBatch.length) {
     grid.innerHTML = firstBatch.map((p, i) => cardHTML(p, i)).join('');
+    
+    // Inject Inline Ad after first batch if it's page 1
+    if (page === 1 && products.length > 6) {
+      const adHTML = `
+        <div class="inline-ad-card">
+          <div style="font-size:1.5rem">🎁</div>
+          <div style="flex:1">
+            <h4 style="margin-bottom:4px; color:var(--gold)">Special Offer for You</h4>
+            <p style="font-size:0.8rem; color:var(--t2); margin-bottom:0">Compare prices on 50M+ products. Sign up to get exclusive deal alerts!</p>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="location.href='index.html'">Sign Up Now</button>
+        </div>
+      `;
+      grid.insertAdjacentHTML('afterend', adHTML);
+    }
   }
+  
   if (grid2 && restBatch.length) {
     grid2.innerHTML += restBatch.map((p, i) => cardHTML(p, i + firstBatch.length)).join('');
   }
@@ -125,34 +141,41 @@ function renderCards(products, page) {
 
 function cardHTML(p, idx) {
   const delay = Math.min(idx * 0.05, 0.5);
-  const discount = p.originalPrice && p.price < p.originalPrice
-    ? Math.round((1 - p.price / p.originalPrice) * 100)
+  const bestPrice = p.bestPrice || p.price;
+  const originalPrice = p.prices?.[0]?.originalPrice || p.originalPrice;
+  const discount = originalPrice && bestPrice < originalPrice
+    ? Math.round((1 - bestPrice / originalPrice) * 100)
     : 0;
 
+  // Use the curated image from seedSamsung
+  const imgSrc = p.image || 'https://via.placeholder.com/200x180?text=Product';
+
   return `
-  <div class="product-card" onclick="openProductModal('${p.id}')" style="animation-delay:${delay}s">
-    ${p.isLowestEver ? '<div class="card-badge-lowest">Lowest Ever!</div>' : ''}
-    <button class="card-wishlist ${isWishlisted(p.id) ? 'active' : ''}"
-            onclick="event.stopPropagation(); toggleWishlist('${p.id}', this)"
+  <div class="product-card" onclick="openProductModal('${p._id || p.id}')" style="animation-delay:${delay}s">
+    ${discount > 20 ? '<div class="card-badge-lowest" style="background:#10b981">Hot Deal!</div>' : ''}
+    <button class="card-wishlist ${isWishlisted(p._id || p.id) ? 'active' : ''}"
+            onclick="event.stopPropagation(); toggleWishlist('${p._id || p.id}', this)"
             title="Add to Wishlist">
-      ${isWishlisted(p.id) ? '♥' : '♡'}
+      ${isWishlisted(p._id || p.id) ? '♥' : '♡'}
     </button>
-    <img class="card-img"
-         src="${p.image || 'https://via.placeholder.com/200x180?text=Product'}"
-         alt="${escapeHTML(p.name)}"
-         onerror="this.src='https://via.placeholder.com/200x180?text=Product'" />
+    <div class="card-img-wrap" style="height:180px; display:flex; align-items:center; justify-content:center; padding:15px">
+      <img class="card-img"
+           src="${imgSrc}"
+           alt="${escapeHTML(p.name)}"
+           style="max-height:100%; object-fit:contain"
+           onerror="this.src='https://via.placeholder.com/200x180?text=Samsung'" />
+    </div>
     <div class="card-body">
-      <div class="card-store">${escapeHTML(p.store || 'Marketplace')}</div>
+      <div class="card-store">${escapeHTML(p.bestStore || p.store || 'Marketplace')}</div>
       <div class="card-name">${escapeHTML(p.name)}</div>
       <div class="card-price-row">
-        <span class="card-price">₹${formatPrice(p.price)}</span>
-        ${p.originalPrice ? `<span class="card-original">₹${formatPrice(p.originalPrice)}</span>` : ''}
+        <span class="card-price">₹${formatPrice(bestPrice)}</span>
+        ${originalPrice && originalPrice > bestPrice ? `<span class="card-original">₹${formatPrice(originalPrice)}</span>` : ''}
         ${discount > 0 ? `<span class="card-discount">−${discount}%</span>` : ''}
       </div>
       <div class="card-meta">
-        <span class="card-offers" style="color:var(--primary); font-weight: 500">${p.prices && p.prices.length > 1 ? `⚖️ Compare ${p.prices.length} Stores` : `✨ Best Price Guaranteed`}</span>
-        ${p.lowestEver ? `<span class="card-lowest">⬇ Lowest: ₹${formatPrice(p.lowestEver)}</span>` : ''}
-        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" style="display:block; margin-top:12px; padding:10px; background:var(--primary); color:#fff; border-radius:8px; text-align:center; font-weight:600; text-decoration:none;" onclick="event.stopPropagation()">View on ${escapeHTML(p.store || 'Store')} →</a>` : ''}
+        <span class="card-offers" style="color:var(--em); font-weight: 500">${p.prices && p.prices.length > 1 ? `⚖️ Compare ${p.prices.length} Stores` : `✨ Verified Best Price`}</span>
+        ${p.prices && p.prices[0] && p.prices[0].url ? `<a href="${p.prices[0].url}" target="_blank" rel="noopener" class="btn btn-em btn-sm btn-full" style="margin-top:12px; font-size:0.75rem" onclick="event.stopPropagation()">View on ${escapeHTML(p.prices[0].store)} →</a>` : ''}
       </div>
     </div>
   </div>`;

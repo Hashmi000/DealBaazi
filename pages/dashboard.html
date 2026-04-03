@@ -7,6 +7,53 @@
   <link rel="stylesheet" href="/public/css/design-system.css"/>
   <link rel="stylesheet" href="/public/css/dashboard.css"/>
   <style>
+    /* Ads Styling */
+    .ad-section { max-width: 1280px; margin: 20px auto; padding: 0 24px; }
+    .ad-banner-premium {
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-deep) 100%);
+      border: 1px solid var(--line-hi);
+      border-radius: var(--r-lg);
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .ad-banner-premium::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 70% 50%, var(--em-dim) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .ad-badge {
+      position: absolute; top: 15px; left: 20px;
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--t3); font-weight: 700;
+    }
+    .ad-content h2 { font-size: 2rem; margin-bottom: 10px; color: var(--t1); }
+    .ad-content p { color: var(--t2); max-width: 450px; margin-bottom: 24px; font-size: 0.95rem; }
+    .ad-visual { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }
+    .ad-icon { font-size: 4rem; z-index: 2; filter: drop-shadow(0 0 20px var(--em)); }
+    .ad-blob {
+      position: absolute; width: 100px; height: 100px;
+      background: var(--em); filter: blur(40px); opacity: 0.3;
+      border-radius: 50%; animation: pulse 4s infinite;
+    }
+    .inline-ad-card {
+      grid-column: 1 / -1;
+      background: var(--bg-raised);
+      border: 1px dashed var(--line-hi);
+      border-radius: var(--r-md);
+      padding: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px 0;
+    }
+  </style>
+  <style>
     /* Ensure the search results section is styled appropriately */
     .results-section { display: none; padding-top: 100px; padding-bottom: 60px; min-height: 80vh; }
     .results-inner { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
@@ -142,6 +189,22 @@
         Load More Results
         <svg style="margin-left:8px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m19 9-7 7-7-7"/></svg>
       </button>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FEATURED ADS ══════════════════════════════════ -->
+<section class="ad-section" id="featured-ads">
+  <div class="ad-banner-premium">
+    <div class="ad-badge">Promoted</div>
+    <div class="ad-content">
+      <h2>Upgrade to <span class="em">DealBaazi Pro</span></h2>
+      <p>Get instant price drop alerts, exclusive coupons, and ad-free browsing. Join 10k+ smart shoppers.</p>
+      <button class="btn btn-em btn-sm" style="background:var(--gold); color:#000">Try Free for 30 Days</button>
+    </div>
+    <div class="ad-visual">
+      <div class="ad-blob"></div>
+      <div class="ad-icon">⭐</div>
     </div>
   </div>
 </section>
