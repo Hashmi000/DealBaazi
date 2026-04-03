@@ -82,16 +82,22 @@ async function sendOtpEmail(email, otp) {
   await transporter.sendMail(mailOptions);
 }
 
-const signToken = (userId) =>
-  jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+const signToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    console.error('❌ JWT_SECRET is missing from environment variables!');
+    throw new Error('JWT configuration error');
+  }
+  return jwt.sign({ id: userId.toString() }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
+};
 
 /* ─────────────────────────────────────────────────
    POST /api/auth/send-otp
    Validates email isn't taken, generates & emails OTP
    ───────────────────────────────────────────────── */
 router.post('/send-otp', async (req, res) => {
+  console.log(`[Auth] OTP Requested for: ${req.body.email}`);
   try {
     const { email } = req.body;
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
@@ -116,10 +122,10 @@ router.post('/send-otp', async (req, res) => {
 
     try {
       await sendOtpEmail(email, otp);
+      console.log(`[Auth] OTP email sent to ${email}`);
       res.json({ message: 'Verification code sent. Check your inbox.' });
     } catch (emailErr) {
-      console.error('Nodemailer failed to send email. Check your .env credentials.');
-      console.error('Error detail:', emailErr.message);
+      console.error('[Auth] Nodemailer failed:', emailErr.message);
       
       // Still show the OTP in console for dev debugging
       console.log(`\n=============================================`);
@@ -133,7 +139,7 @@ router.post('/send-otp', async (req, res) => {
     }
 
   } catch (err) {
-    console.error('send-otp error:', err);
+    console.error('[Auth] send-otp error:', err);
     res.status(500).json({ message: 'Failed to send verification code. Please try again.' });
   }
 });
@@ -143,6 +149,7 @@ router.post('/send-otp', async (req, res) => {
    Verifies OTP then creates user account
    ───────────────────────────────────────────────── */
 router.post('/register', async (req, res) => {
+  console.log(`[Auth] Registering user: ${req.body.email}`);
   try {
     const { firstName, lastName, email, password, otp } = req.body;
 
@@ -188,6 +195,7 @@ router.post('/register', async (req, res) => {
       isVerified: true  // email verified via OTP
     });
 
+    console.log(`[Auth] User created successfully: ${user.email}`);
     const token = signToken(user._id);
     res.status(201).json({
       token,
@@ -195,8 +203,8 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('register error:', err);
-    res.status(500).json({ message: 'Registration failed. Please try again.' });
+    console.error('[Auth] register error:', err);
+    res.status(500).json({ message: 'Registration failed. Please try again.', detail: err.message });
   }
 });
 
@@ -204,24 +212,33 @@ router.post('/register', async (req, res) => {
    POST /api/auth/login  (unchanged — keep your existing)
    ───────────────────────────────────────────────── */
 router.post('/login', async (req, res) => {
+  console.log(`[Auth] Login attempt: ${req.body.email}`);
   try {
     const { email, password } = req.body;
     if (!email || !password)
       return res.status(400).json({ message: 'Email and password are required.' });
 
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-    if (!user || !(await user.comparePassword(password)))
-      return res.status(401).json({ message: 'Incorrect email or password.' });
+    if (!user) {
+        console.log(`[Auth] Login failed: User ${email} not found`);
+        return res.status(401).json({ message: 'Incorrect email or password.' });
+    }
+    
+    if (!(await user.comparePassword(password))) {
+        console.log(`[Auth] Login failed: Password mismatch for ${email}`);
+        return res.status(401).json({ message: 'Incorrect email or password.' });
+    }
 
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
+    console.log(`[Auth] Login successful: ${email}`);
     const token = signToken(user._id);
     res.json({ token, user: { id: user._id, firstName: user.firstName, email: user.email } });
 
   } catch (err) {
-    console.error('login error:', err);
-    res.status(500).json({ message: 'Login failed. Please try again.' });
+    console.error('[Auth] login error:', err);
+    res.status(500).json({ message: 'Login failed. Please try again.', detail: err.message });
   }
 });
 

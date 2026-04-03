@@ -36,7 +36,13 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'https://deal-baazi.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'http://localhost:5500',
+    'http://127.0.0.1:5500'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
@@ -55,8 +61,12 @@ app.use(session({
   }
 }));
 
+// Basic passport serialization for session support
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+
 app.use(passport.initialize());
-app.use(passport.session());
+app.use(passport.session()); 
 
 /* ── Rate Limiting ─────────────────────────────── */
 const limiter = rateLimit({
@@ -90,9 +100,11 @@ app.get('*', (req, res) => {
 
 /* ── Error Handler ─────────────────────────────── */
 app.use((err, req, res, next) => {
+  console.error('🔥 Global Error Handler:', err.message);
   console.error(err.stack);
   res.status(err.status || 500).json({
-    message: err.message || 'Internal server error'
+    message: err.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
 

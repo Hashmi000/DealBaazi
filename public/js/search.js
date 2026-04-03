@@ -143,7 +143,7 @@ function cardHTML(p, idx) {
         ${discount > 0 ? `<span class="card-discount">−${discount}%</span>` : ''}
       </div>
       <div class="card-meta">
-        <span class="card-offers">${p.offers?.length ? `🏷️ ${p.offers.length} offer${p.offers.length > 1 ? 's' : ''}` : ''}</span>
+        <span class="card-offers" style="color:var(--primary); font-weight: 500">${p.prices && p.prices.length > 1 ? `⚖️ Compare ${p.prices.length} Stores` : `✨ Best Price Guaranteed`}</span>
         ${p.lowestEver ? `<span class="card-lowest">⬇ Lowest: ₹${formatPrice(p.lowestEver)}</span>` : ''}
       </div>
     </div>

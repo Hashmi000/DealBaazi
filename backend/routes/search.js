@@ -6,98 +6,102 @@ const scraperService = require('../services/scraperService');
 const router = express.Router();
 const PAGE_SIZE = 12;
 
+// Clean name for fuzzy matching
+const normalizeName = (name) => name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40);
+
 /* GET /api/search?q=iphone&page=1&sortBy=price-low&... */
 router.get('/', async (req, res) => {
   try {
-    const {
-      q, page = 1, category, marketplaces,
-      priceMin, priceMax, sortBy, offersOnly, inStockOnly
-    } = req.query;
-
-    if (!q || q.trim().length < 2)
-      return res.status(400).json({ message: 'Query too short.' });
+    const { q, page = 1, category } = req.query;
+    if (!q || q.trim().length < 2) return res.status(400).json({ message: 'Query too short.' });
 
     const query = q.trim();
     const pageNum = Math.max(1, parseInt(page));
-    const skip = (pageNum - 1) * PAGE_SIZE;
 
-    // Build MongoDB filter
-    const filter = {
-      $text: { $search: query },
-      isActive: true
-    };
-    if (category)  filter.category = category;
-    if (priceMin || priceMax) {
-      filter.bestPrice = {};
-      if (priceMin) filter.bestPrice.$gte = Number(priceMin);
-      if (priceMax) filter.bestPrice.$lte = Number(priceMax);
-    }
-    if (offersOnly === '1') filter['prices.offers.0'] = { $exists: true };
+    // 1. Initial Database Search
+    let products = await Product.find({ $text: { $search: query } })
+      .limit(PAGE_SIZE)
+      .lean();
 
-    // Marketplace filter
-    const activeMarkets = marketplaces?.split(',').filter(Boolean);
+    // 2. Trigger LIVE Scrape if needed (No results or stale data > 24 hours)
+    const isStale = products.length > 0 && products.some(p => !p.lastScraped || (Date.now() - new Date(p.lastScraped).getTime()) > 24 * 60 * 60 * 1000);
+    
+    if ((products.length < 1 || isStale) && pageNum === 1) {
+      console.log(`Live scraping for "${query}"...`);
+      const scrapedData = await scraperService.scrapeQuery(query);
 
-    // Sort
-    let sort = { score: { $meta: 'textScore' } };
-    if (sortBy === 'price-low')  sort = { bestPrice: 1 };
-    if (sortBy === 'price-high') sort = { bestPrice: -1 };
-    if (sortBy === 'discount')   sort = { discountPct: -1 };
+      for (const item of scrapedData) {
+        const normName = normalizeName(item.name);
+        
+        // Find existing product by normalized name similarity (using regex on the original name for now)
+        let product = await Product.findOne({ 
+          name: { $regex: new RegExp(item.name.substring(0, 20), 'i') } 
+        });
 
-    const [products, total] = await Promise.all([
-      Product.find(filter, { score: { $meta: 'textScore' } })
-        .sort(sort)
-        .skip(skip)
-        .limit(PAGE_SIZE)
-        .lean(),
-      Product.countDocuments(filter)
-    ]);
-
-    // Track search count
-    Product.updateMany(
-      { _id: { $in: products.map(p => p._id) } },
-      { $inc: { searchCount: 1 } }
-    ).catch(() => {});
-
-    // If too few results, trigger live scrape (async — don't await)
-    if (products.length < 3) {
-      scraperService.scrapeQuery(query).catch(err =>
-        console.error('Background scrape error:', err)
-      );
-    }
-
-    // Map + filter by marketplace if needed
-    const results = products.map(p => {
-      let prices = p.prices || [];
-      if (activeMarkets?.length) {
-        prices = prices.filter(s =>
-          activeMarkets.some(m => s.store?.toLowerCase().includes(m))
-        );
+        if (product) {
+          // Update existing product: Add or Replace store price
+          await Product.updateOne(
+            { _id: product._id },
+            { 
+              $set: { lastScraped: new Date() },
+              $pull: { prices: { store: item.store } } 
+            }
+          );
+          await Product.updateOne(
+            { _id: product._id },
+            { 
+              $push: { 
+                prices: { 
+                  store: item.store, 
+                  price: item.price, 
+                  url: item.url, 
+                  lastUpdated: new Date() 
+                } 
+              }
+            }
+          );
+        } else {
+          // Create new product
+          await Product.create({
+            name: item.name,
+            image: item.image,
+            category: category || 'General',
+            prices: [{
+              store: item.store,
+              price: item.price,
+              url: item.url,
+              lastUpdated: new Date()
+            }],
+            bestPrice: item.price,
+            bestStore: item.store,
+            lastScraped: new Date()
+          });
+        }
       }
-      if (inStockOnly === '1') prices = prices.filter(s => s.inStock);
 
-      const bestEntry = prices.sort((a, b) => a.price - b.price)[0];
+      // Re-fetch after scraping
+      products = await Product.find({ $text: { $search: query } })
+        .limit(PAGE_SIZE)
+        .lean();
+    }
+
+    // 3. Final Format Logic
+    const results = products.map(p => {
+      const sortedPrices = (p.prices || []).sort((a, b) => a.price - b.price);
+      const bestEntry = sortedPrices[0];
 
       return {
         id:            p._id,
         name:          p.name,
         image:         p.image,
-        store:         bestEntry?.store || p.bestStore,
-        price:         bestEntry?.price || p.bestPrice,
-        originalPrice: bestEntry?.originalPrice,
-        lowestEver:    p.lowestEver,
-        isLowestEver:  bestEntry?.price && bestEntry.price <= (p.lowestEver || Infinity),
-        offers:        bestEntry?.offers || [],
+        store:         bestEntry?.store || 'Marketplace',
+        price:         bestEntry?.price || 0,
+        prices:        sortedPrices,
         category:      p.category
       };
-    }).filter(p => p.price);
+    }).filter(p => p.price > 0);
 
-    res.json({
-      results,
-      total,
-      page: pageNum,
-      hasMore: skip + PAGE_SIZE < total,
-      query
-    });
+    res.json({ results, total: results.length, page: pageNum, query });
 
   } catch (err) {
     console.error('Search error:', err);

@@ -50,10 +50,7 @@ const productSchema = new mongoose.Schema({
 
 productSchema.index({ name: 'text', brand: 'text', tags: 'text' });
 productSchema.index({ category: 1 });
-productSchema.index({ bestPrice: 1 });
-
-module.exports = mongoose.model('Product', productSchema);
-
+const Product = mongoose.model('Product', productSchema);
 
 /* ── models/PriceAlert.js ────────────────────────── */
 const alertSchema = new mongoose.Schema({
@@ -69,4 +66,4 @@ const alertSchema = new mongoose.Schema({
 
 const PriceAlert = mongoose.model('PriceAlert', alertSchema);
 
-module.exports = { Product: mongoose.model('Product', productSchema), PriceAlert };
+module.exports = { Product, PriceAlert };
